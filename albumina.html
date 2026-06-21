@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PCR/Albúmina — UTI Tools</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#0a0f1e; --surface:rgba(255,255,255,0.04); --surface-hover:rgba(255,255,255,0.08);
+      --border:rgba(255,255,255,0.10); --text:#fff; --sub:rgba(255,255,255,0.55); --muted:rgba(255,255,255,0.35);
+      --input-bg:#0f1729; --accent:#4a6cf7;
+      --green:#1D9E75; --ga:rgba(29,158,117,0.15); --gb:rgba(29,158,117,0.30);
+      --yellow:#EF9F27; --ya:rgba(239,159,39,0.15); --yb:rgba(239,159,39,0.30);
+      --orange:#f97316; --oa:rgba(249,115,22,0.13); --ob:rgba(249,115,22,0.30);
+      --red:#e05555; --ra:rgba(224,85,85,0.15); --rb:rgba(224,85,85,0.30);
+    }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-height: 100vh; }
+    .ecg-bg { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 0; overflow: visible; }
+    .page { position: relative; z-index: 1; max-width: 440px; margin: 0 auto; padding: 28px 18px 60px; }
+
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 600;
+      color: var(--sub); text-decoration: none; background: var(--surface); border: 1px solid var(--border);
+      padding: 6px 12px; border-radius: 8px; transition: background 0.2s, color 0.2s; margin-bottom: 22px;
+    }
+    .back-btn:hover { background: var(--surface-hover); color: var(--text); }
+
+    .header { margin-bottom: 26px; }
+    h1 { font-size: 1.55rem; font-weight: 800; letter-spacing: -0.5px; }
+    .header p { font-size: 0.8rem; color: var(--muted); margin-top: 5px; }
+
+    .fields-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 4px; }
+    .field label { display: block; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; color: var(--sub); margin-bottom: 7px; }
+    .field input {
+      width: 100%; padding: 12px 13px; font-size: 1.15rem; font-weight: 600;
+      color: var(--text); background: var(--input-bg); border: 1px solid var(--border);
+      border-radius: 8px; outline: none; transition: border-color 0.2s, background 0.2s;
+      -webkit-appearance: none; appearance: none;
+    }
+    .field input:focus { border-color: rgba(255,255,255,0.3); background: #131e38; }
+    .field input::placeholder { color: rgba(255,255,255,0.18); font-weight: 400; font-size: 0.95rem; }
+    .field-unit { font-size: 0.68rem; color: var(--muted); margin-top: 4px; text-align: center; }
+
+    .formula-note { text-align: center; font-size: 0.8rem; color: var(--muted); margin: 14px 0 20px; font-style: italic; }
+
+    .result-box {
+      border-radius: 12px; padding: 22px 18px; text-align: center;
+      background: var(--surface); border: 1px solid var(--border);
+      transition: background 0.3s, border-color 0.3s; min-height: 106px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .result-box.green  { background: var(--ga); border-color: var(--gb); }
+    .result-box.yellow { background: var(--ya); border-color: var(--yb); }
+    .result-box.orange { background: var(--oa); border-color: var(--ob); }
+    .result-box.red    { background: var(--ra); border-color: var(--rb); }
+
+    .result-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 7px; }
+    .result-value { font-size: 2.8rem; font-weight: 800; color: rgba(255,255,255,0.2); letter-spacing: -1px; line-height: 1; transition: color 0.3s; }
+    .result-value.green  { color: var(--green); }
+    .result-value.yellow { color: var(--yellow); }
+    .result-value.orange { color: var(--orange); }
+    .result-value.red    { color: var(--red); }
+    .result-interp { margin-top: 8px; font-size: 0.86rem; font-weight: 600; color: var(--muted); }
+    .result-interp.green  { color: var(--green); }
+    .result-interp.yellow { color: var(--yellow); }
+    .result-interp.orange { color: var(--orange); }
+    .result-interp.red    { color: var(--red); }
+
+    /* Zones */
+    .zones { display: flex; margin-top: 12px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+    .zone { flex: 1; padding: 7px 3px; text-align: center; font-size: 0.64rem; font-weight: 700; }
+    .zone .zone-val { font-size: 0.72rem; display: block; margin-bottom: 1px; }
+    .zone.green  { background: var(--ga); color: var(--green); }
+    .zone.yellow { background: var(--ya); color: var(--yellow); border-left: 1px solid var(--border); }
+    .zone.orange { background: var(--oa); color: var(--orange); border-left: 1px solid var(--border); }
+    .zone.red    { background: var(--ra); color: var(--red); border-left: 1px solid var(--border); }
+
+    /* Fisiopatología */
+    .fisio-wrap { margin-top: 12px; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); display: none; }
+    .fisio-wrap.visible { display: block; }
+    .fisio-wrap.green  { border-color: var(--gb); }
+    .fisio-wrap.yellow { border-color: var(--yb); }
+    .fisio-wrap.orange { border-color: var(--ob); }
+    .fisio-wrap.red    { border-color: var(--rb); }
+    .fisio-toggle {
+      width: 100%; padding: 11px 14px; background: none; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 0.76rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;
+      color: var(--sub); transition: background 0.2s;
+    }
+    .fisio-toggle:hover { background: var(--surface-hover); }
+    .fisio-toggle.green  { color: var(--green); }
+    .fisio-toggle.yellow { color: var(--yellow); }
+    .fisio-toggle.orange { color: var(--orange); }
+    .fisio-toggle.red    { color: var(--red); }
+    .fisio-arrow { font-size: 0.65rem; color: var(--muted); transition: transform 0.25s; }
+    .fisio-arrow.open { transform: rotate(180deg); }
+    .fisio-body { display: none; padding: 0 14px 14px; background: rgba(255,255,255,0.02); }
+    .fisio-body.open { display: block; }
+    .fisio-body p { font-size: 0.83rem; line-height: 1.65; color: rgba(255,255,255,0.68); margin-bottom: 9px; }
+    .fisio-body p:last-child { margin-bottom: 0; }
+    .fisio-body strong { color: var(--text); }
+    .tag { display: inline-block; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 8px; border-radius: 6px; margin-bottom: 9px; }
+    .tag.green  { background: var(--ga); color: var(--green); border: 1px solid var(--gb); }
+    .tag.yellow { background: var(--ya); color: var(--yellow); border: 1px solid var(--yb); }
+    .tag.orange { background: var(--oa); color: var(--orange); border: 1px solid var(--ob); }
+    .tag.red    { background: var(--ra); color: var(--red); border: 1px solid var(--rb); }
+    .divider { height: 1px; background: var(--border); margin: 9px 0; }
+
+    .clear-btn {
+      width: 100%; margin-top: 14px; padding: 12px; background: none;
+      border: 1px solid var(--border); border-radius: 8px; font-size: 0.86rem;
+      font-weight: 600; color: var(--muted); cursor: pointer; transition: background 0.2s, color 0.2s;
+    }
+    .clear-btn:hover { background: var(--surface-hover); color: var(--sub); }
+    .ref-note { font-size: 0.7rem; color: var(--muted); text-align: center; margin-top: 18px; font-style: italic; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <svg class="ecg-bg" xmlns="http://www.w3.org/2000/svg"></svg>
+  <div class="page">
+    <a class="back-btn" href="index.html">← Inicio</a>
+    <div class="header">
+      <h1>Ratio PCR / Albúmina</h1>
+      <p>Marcador integrado de inflamación y estado nutricional</p>
+    </div>
+
+    <div class="fields-row">
+      <div class="field">
+        <label>PCR</label>
+        <input type="number" id="pcr" placeholder="ej. 180" inputmode="decimal" min="0" autocomplete="off">
+        <div class="field-unit">mg/L</div>
+      </div>
+      <div class="field">
+        <label>Albúmina</label>
+        <input type="number" id="alb" placeholder="ej. 2.1" inputmode="decimal" min="0" step="0.1" autocomplete="off">
+        <div class="field-unit">g/dL</div>
+      </div>
+    </div>
+    <p class="formula-note">Ratio = PCR (mg/L) ÷ Albúmina (g/dL)</p>
+
+    <div class="result-box" id="resultBox">
+      <div class="result-label">Resultado</div>
+      <div class="result-value" id="resultValue">—</div>
+      <div class="result-interp" id="resultInterp">Ingresá los valores</div>
+    </div>
+
+    <div class="zones">
+      <div class="zone green"><span class="zone-val">&lt; 10</span>Normal</div>
+      <div class="zone yellow"><span class="zone-val">10–30</span>Leve</div>
+      <div class="zone orange"><span class="zone-val">30–60</span>Moderado</div>
+      <div class="zone red"><span class="zone-val">&gt; 60</span>Severo</div>
+    </div>
+
+    <div class="fisio-wrap" id="fisioWrap">
+      <button class="fisio-toggle" id="fisioToggle" onclick="toggleFisio()">
+        <span>Ver fisiopatología y conducta</span>
+        <span class="fisio-arrow" id="fisioArrow">▼</span>
+      </button>
+      <div class="fisio-body" id="fisioBody"></div>
+    </div>
+
+    <button class="clear-btn" onclick="clearAll()">Limpiar</button>
+    <div class="ref-note">ALBIOS Trial (JAMA 2014) · Caironi et al.<br>Uso clínico de apoyo — no reemplaza el juicio clínico</div>
+  </div>
+
+  <script>
+    const FISIO={
+      green:`<span class="tag green">Ratio &lt; 10 — Normal</span>
+<p><strong>Equilibrio oncótico preservado.</strong> La albúmina mantiene ~80% de la presión oncótica plasmática, limitando la fuga de agua al intersticio. Una PCR baja indica que la respuesta inflamatoria de fase aguda no ha comprometido la síntesis proteica hepática.</p>
+<div class="divider"></div>
+<p><strong>Conducta:</strong> Sin evidencia de fuga capilar activa ni depleción proteica relevante. Reposición de albúmina no indicada en este contexto. Reevaluar si hay deterioro clínico.</p>`,
+      yellow:`<span class="tag yellow">Ratio 10–30 — Inflamación leve</span>
+<p><strong>Activación inflamatoria con albúmina relativamente preservada.</strong> La PCR elevada refleja producción hepática de proteínas de fase aguda positiva. La albúmina (proteína de fase aguda negativa) comienza a descender por redistribución y síntesis reducida: el hepatocito prioriza reactantes inflamatorios.</p>
+<div class="divider"></div>
+<p><strong>Fuga capilar incipiente.</strong> IL-6, TNF-α y otros mediadores aumentan la permeabilidad vascular. El intersticio comienza a capturar albúmina, reduciendo el pool plasmático y la presión oncótica efectiva.</p>
+<div class="divider"></div>
+<p><strong>Conducta:</strong> Monitoreo del estado nutricional e hidratación. Optimizar el foco infeccioso o inflamatorio. Reposición de albúmina no indicada de rutina en este rango.</p>`,
+      orange:`<span class="tag orange">Ratio 30–60 — Inflamación moderada</span>
+<p><strong>Hipoalbuminemia significativa.</strong> Dos mecanismos simultáneos: (1) redistribución al intersticio por fuga capilar activa y (2) disminución de síntesis hepática. Con albúmina &lt; 2.5–3 g/dL, la presión oncótica cae, favoreciendo el edema tisular y alterando la distribución de fármacos ligados a proteínas (β-lactámicos, sedantes).</p>
+<div class="divider"></div>
+<p><strong>Conducta:</strong> Considerar <strong>albúmina 20%</strong> si Alb &lt; 2.5 g/dL y hay signos de tercer espacio o inestabilidad hemodinámica. Soporte nutricional proteico intensificado. Vigilar balance hídrico y presión de perfusión.</p>`,
+      red:`<span class="tag red">Ratio &gt; 60 — Inflamación severa</span>
+<p><strong>Respuesta inflamatoria sistémica catastrófica.</strong> La barrera endotelial está profundamente comprometida: la albúmina (66 kDa) pasa libremente al intersticio y al tercer espacio. Sin presión oncótica efectiva, cualquier cristaloide administrado migra rápidamente, generando edema pulmonar no cardiogénico, íleo, hipertensión intraabdominal.</p>
+<div class="divider"></div>
+<p><strong>ALBIOS Trial (JAMA 2014).</strong> En sepsis severa y shock séptico, la reposición de <strong>albúmina 20%</strong> para mantener ≥ 3 g/dL no redujo mortalidad general a 28 días, pero el subgrupo de <strong>shock séptico</strong> mostró reducción significativa a 90 días (HR 0.87, IC 0.77–0.99). La albúmina no es solo oncótica: tiene propiedades antioxidantes, antiinflamatorias, de transporte y modulación del tono vascular.</p>
+<div class="divider"></div>
+<p><strong>Conducta:</strong> <strong>Iniciar albúmina 20%</strong> si Alb &lt; 2 g/dL en shock séptico (meta ≥ 3 g/dL). Limitar cristaloides. Balance restrictivo o negativo si tolera. Evaluar vasopresores para sostener la perfusión. Soporte nutricional parenteral si la vía enteral está comprometida.</p>`
+    };
+
+    const pcrInput=document.getElementById('pcr'), albInput=document.getElementById('alb');
+    const box=document.getElementById('resultBox'), valEl=document.getElementById('resultValue'), interpEl=document.getElementById('resultInterp');
+    const fisioWrap=document.getElementById('fisioWrap'), fisioToggle=document.getElementById('fisioToggle');
+    const fisioArrow=document.getElementById('fisioArrow'), fisioBody=document.getElementById('fisioBody');
+    let fisioOpen=false, currentColor='';
+
+    function toggleFisio(){
+      fisioOpen=!fisioOpen;
+      fisioBody.classList.toggle('open',fisioOpen);
+      fisioArrow.classList.toggle('open',fisioOpen);
+    }
+    function updateFisio(color){
+      if(color===currentColor) return;
+      currentColor=color; fisioOpen=false;
+      fisioBody.classList.remove('open'); fisioArrow.classList.remove('open');
+      ['green','yellow','orange','red'].forEach(c=>{fisioWrap.classList.remove(c);fisioToggle.classList.remove(c);});
+      if(color){fisioWrap.classList.add('visible',color);fisioToggle.classList.add(color);fisioBody.innerHTML=FISIO[color];}
+      else{fisioWrap.classList.remove('visible');fisioBody.innerHTML='';}
+    }
+    function setResult(value,color,interp){
+      ['green','yellow','orange','red'].forEach(c=>{box.classList.remove(c);valEl.classList.remove(c);interpEl.classList.remove(c);});
+      valEl.textContent=value!==null?value:'—';
+      interpEl.textContent=interp;
+      if(color){box.classList.add(color);valEl.classList.add(color);interpEl.classList.add(color);}
+    }
+    function calculate(){
+      const pcr=parseFloat(pcrInput.value), alb=parseFloat(albInput.value);
+      if(!pcrInput.value||!albInput.value||isNaN(pcr)||isNaN(alb)){reset();return;}
+      if(alb===0){setResult(null,'','Albúmina no puede ser 0');updateFisio('');return;}
+      if(pcr<0||alb<=0){reset();return;}
+      const r=pcr/alb;
+      const d=r>=100?Math.round(r).toString():r.toFixed(1);
+      if(r<10){setResult(d,'green','Normal');updateFisio('green');}
+      else if(r<=30){setResult(d,'yellow','Inflamación leve');updateFisio('yellow');}
+      else if(r<=60){setResult(d,'orange','Inflamación moderada');updateFisio('orange');}
+      else{setResult(d,'red','Inflamación severa');updateFisio('red');}
+    }
+    function reset(){setResult(null,'','Ingresá los valores');updateFisio('');}
+    function clearAll(){pcrInput.value='';albInput.value='';reset();pcrInput.focus();}
+    pcrInput.addEventListener('input',calculate);
+    albInput.addEventListener('input',calculate);
+
+    (function(){
+      const svg=document.querySelector('.ecg-bg');
+      const W=window.innerWidth,H=window.innerHeight;
+      svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+      const BW=240,n=Math.ceil(W/BW)+2;
+      function line(y,s,o,w){
+        let d=`M${-BW},${y}`;
+        for(let i=0;i<n;i++){const x=i*BW-BW;
+          d+=` H${x+28} L${x+31},${y-3} L${x+36},${y-4} L${x+40},${y} H${x+56} L${x+59},${y+4} L${x+63},${y-38} L${x+68},${y+12} L${x+72},${y} H${x+78} L${x+83},${y-2} L${x+96},${y-9} L${x+110},${y} H${x+BW}`;}
+        return `<path d="${d}" stroke="${s}" stroke-width="${w}" fill="none" opacity="${o}" stroke-linecap="round" stroke-linejoin="round"/>`;
+      }
+      svg.innerHTML=[line(H*.22,'#e05555',0.35,1.5),line(H*.52,'#e05555',0.18,1.2),line(H*.76,'#378ADD',0.12,1.2)].join('');
+    })();
+  </script>
+</body>
+</html>

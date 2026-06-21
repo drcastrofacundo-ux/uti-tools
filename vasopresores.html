@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vasopresores — UTI Tools</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#0a0f1e; --surface:rgba(255,255,255,0.04); --surface-hover:rgba(255,255,255,0.08);
+      --border:rgba(255,255,255,0.10); --text:#fff; --sub:rgba(255,255,255,0.55); --muted:rgba(255,255,255,0.35);
+      --input-bg:#0f1729; --accent:#4a6cf7;
+      --green:#1D9E75; --ga:rgba(29,158,117,0.15); --gb:rgba(29,158,117,0.30);
+      --yellow:#EF9F27; --ya:rgba(239,159,39,0.15); --yb:rgba(239,159,39,0.30);
+      --orange:#f97316; --oa:rgba(249,115,22,0.13); --ob:rgba(249,115,22,0.30);
+      --red:#e05555; --ra:rgba(224,85,85,0.15); --rb:rgba(224,85,85,0.30);
+    }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-height: 100vh; }
+    .ecg-bg { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 0; overflow: visible; }
+    .page { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding: 28px 16px 64px; }
+
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 600;
+      color: var(--sub); text-decoration: none; background: var(--surface); border: 1px solid var(--border);
+      padding: 6px 12px; border-radius: 8px; transition: background 0.2s, color 0.2s; margin-bottom: 20px;
+    }
+    .back-btn:hover { background: var(--surface-hover); color: var(--text); }
+
+    .header { margin-bottom: 18px; }
+    h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.5px; }
+    .header p { font-size: 0.78rem; color: var(--muted); margin-top: 5px; }
+
+    /* Peso global */
+    .peso-bar {
+      background: rgba(15,23,41,0.85); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      padding: 12px 16px; display: flex; align-items: center; gap: 14px;
+      margin-bottom: 18px; position: sticky; top: 8px; z-index: 10;
+    }
+    .peso-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); white-space: nowrap; }
+    .peso-input {
+      flex: 1; padding: 8px 12px; font-size: 1.1rem; font-weight: 700;
+      color: var(--text); background: var(--input-bg); border: 1px solid var(--border);
+      border-radius: 8px; outline: none; transition: border-color 0.2s;
+      -webkit-appearance: none; appearance: none; max-width: 110px;
+    }
+    .peso-input:focus { border-color: rgba(255,255,255,0.3); }
+    .peso-input::placeholder { color: rgba(255,255,255,0.18); font-weight: 400; font-size: 0.9rem; }
+    .peso-unit { font-size: 0.8rem; color: var(--muted); }
+
+    /* Drug cards */
+    .drug-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
+    .drug-header { padding: 13px 15px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .drug-info { display: flex; align-items: center; gap: 10px; }
+    .drug-emoji { font-size: 1.2rem; }
+    .drug-name { font-size: 0.95rem; font-weight: 700; }
+    .drug-amp { font-size: 0.7rem; color: var(--muted); margin-top: 1px; }
+    .drug-sofabadge {
+      font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+      padding: 3px 9px; border-radius: 20px; display: none;
+    }
+    .drug-sofabadge.visible { display: inline-block; }
+    .drug-sofabadge.sofa2 { background: var(--ya); color: var(--yellow); border: 1px solid var(--yb); }
+    .drug-sofabadge.sofa3 { background: var(--oa); color: var(--orange); border: 1px solid var(--ob); }
+    .drug-sofabadge.sofa4 { background: var(--ra); color: var(--red); border: 1px solid var(--rb); }
+
+    .drug-body { padding: 13px 14px 14px; }
+    .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .inp-group label { display: block; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--sub); margin-bottom: 5px; }
+    .inp-group input {
+      width: 100%; padding: 10px 12px; font-size: 1rem; font-weight: 600;
+      color: var(--text); background: var(--input-bg); border: 1px solid var(--border);
+      border-radius: 8px; outline: none; transition: border-color 0.2s;
+      -webkit-appearance: none; appearance: none;
+    }
+    .inp-group input:focus { border-color: rgba(255,255,255,0.28); background: #131e38; }
+    .inp-group input::placeholder { color: rgba(255,255,255,0.18); font-weight: 400; font-size: 0.88rem; }
+    .inp-group.full { margin-bottom: 10px; }
+
+    /* Vasopresina dose selector */
+    .vaso-dose-row { display: flex; gap: 8px; margin-bottom: 10px; }
+    .dose-opt {
+      flex: 1; padding: 8px 4px; text-align: center; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.02);
+      cursor: pointer; transition: all 0.15s;
+    }
+    .dose-opt:hover { border-color: rgba(255,255,255,0.18); background: rgba(255,255,255,0.05); }
+    .dose-opt.sel { border-color: rgba(74,108,247,0.5); background: rgba(74,108,247,0.12); }
+    .dose-opt-val { font-size: 0.88rem; font-weight: 700; display: block; }
+    .dose-opt-unit { font-size: 0.62rem; color: var(--muted); }
+    .dose-opt.sel .dose-opt-val { color: var(--accent); }
+
+    /* Results */
+    .results-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    .res-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 9px 8px; text-align: center; }
+    .res-lbl { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 4px; }
+    .res-val { font-size: 1.1rem; font-weight: 800; color: rgba(255,255,255,0.25); display: block; line-height: 1; font-variant-numeric: tabular-nums; }
+    .res-val.has-val { color: var(--text); }
+    .res-val.warn { color: var(--yellow); }
+    .res-val.danger { color: var(--red); }
+    .res-unit { font-size: 0.6rem; color: var(--muted); margin-top: 2px; }
+    .res-item.highlight { border-color: rgba(255,255,255,0.15); }
+    .res-item.highlight .res-lbl { color: var(--sub); }
+
+    /* Vasopresina special results */
+    .vaso-results { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    /* Alert bar */
+    .alert-bar {
+      margin-top: 10px; padding: 9px 12px; border-radius: 8px;
+      font-size: 0.78rem; font-weight: 600; line-height: 1.45; display: none;
+    }
+    .alert-bar.warn  { background: var(--ya); border: 1px solid var(--yb); color: var(--yellow); display: block; }
+    .alert-bar.danger{ background: var(--ra); border: 1px solid var(--rb); color: var(--red); display: block; }
+
+    /* SOFA bar */
+    .sofa-bar {
+      margin-top: 8px; padding: 8px 12px; border-radius: 8px;
+      font-size: 0.76rem; font-weight: 600; display: none; align-items: center; justify-content: space-between;
+    }
+    .sofa-bar.visible { display: flex; }
+    .sofa-bar.sofa2 { background: var(--ya); border: 1px solid var(--yb); color: var(--yellow); }
+    .sofa-bar.sofa3 { background: var(--oa); border: 1px solid var(--ob); color: var(--orange); }
+    .sofa-bar.sofa4 { background: var(--ra); border: 1px solid var(--rb); color: var(--red); }
+    .sofa-pts { font-size: 1.1rem; font-weight: 800; }
+
+    .ref-note { font-size: 0.7rem; color: var(--muted); text-align: center; margin-top: 20px; font-style: italic; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <svg class="ecg-bg" xmlns="http://www.w3.org/2000/svg"></svg>
+  <div class="page">
+    <a class="back-btn" href="index.html">← Inicio</a>
+    <div class="header">
+      <h1>Calculadora de Vasopresores</h1>
+      <p>Concentración · Dosis absoluta · GAMAS · Alertas</p>
+    </div>
+
+    <!-- Peso global sticky -->
+    <div class="peso-bar">
+      <div class="peso-label">Peso del paciente</div>
+      <input class="peso-input" type="number" id="peso" placeholder="ej. 70" inputmode="decimal" min="0" max="300" oninput="recalcAll()">
+      <span class="peso-unit">kg</span>
+    </div>
+
+    <!-- NE -->
+    <div class="drug-card">
+      <div class="drug-header">
+        <div class="drug-info">
+          <span class="drug-emoji">🔴</span>
+          <div><div class="drug-name">Norepinefrina</div><div class="drug-amp">4 mg / amp</div></div>
+        </div>
+        <span class="drug-sofabadge" id="ne-badge"></span>
+      </div>
+      <div class="drug-body">
+        <div class="input-row">
+          <div class="inp-group"><label>Ampollas</label><input type="number" id="ne-amp" placeholder="ej. 2" inputmode="decimal" min="0" oninput="calc('ne')"></div>
+          <div class="inp-group"><label>Vol final (mL)</label><input type="number" id="ne-vol" placeholder="ej. 100" inputmode="decimal" min="0" oninput="calc('ne')"></div>
+        </div>
+        <div class="inp-group full"><label>Velocidad bomba (mL/h)</label><input type="number" id="ne-vel" placeholder="ej. 8" inputmode="decimal" min="0" oninput="calc('ne')"></div>
+        <div class="results-grid">
+          <div class="res-item"><div class="res-lbl">Concentración</div><span class="res-val" id="ne-conc">—</span><div class="res-unit">mcg/mL</div></div>
+          <div class="res-item"><div class="res-lbl">Dosis abs.</div><span class="res-val" id="ne-abs">—</span><div class="res-unit">mcg/min</div></div>
+          <div class="res-item highlight"><div class="res-lbl">GAMAS</div><span class="res-val" id="ne-gamas">—</span><div class="res-unit">mcg/kg/min</div></div>
+        </div>
+        <div class="alert-bar" id="ne-alert"></div>
+        <div class="sofa-bar" id="ne-sofa"></div>
+      </div>
+    </div>
+
+    <!-- Dobutamina -->
+    <div class="drug-card">
+      <div class="drug-header">
+        <div class="drug-info">
+          <span class="drug-emoji">🟡</span>
+          <div><div class="drug-name">Dobutamina</div><div class="drug-amp">250 mg / amp</div></div>
+        </div>
+      </div>
+      <div class="drug-body">
+        <div class="input-row">
+          <div class="inp-group"><label>Ampollas</label><input type="number" id="dobu-amp" placeholder="ej. 1" inputmode="decimal" min="0" oninput="calc('dobu')"></div>
+          <div class="inp-group"><label>Vol final (mL)</label><input type="number" id="dobu-vol" placeholder="ej. 250" inputmode="decimal" min="0" oninput="calc('dobu')"></div>
+        </div>
+        <div class="inp-group full"><label>Velocidad bomba (mL/h)</label><input type="number" id="dobu-vel" placeholder="ej. 12" inputmode="decimal" min="0" oninput="calc('dobu')"></div>
+        <div class="results-grid">
+          <div class="res-item"><div class="res-lbl">Concentración</div><span class="res-val" id="dobu-conc">—</span><div class="res-unit">mcg/mL</div></div>
+          <div class="res-item"><div class="res-lbl">Dosis abs.</div><span class="res-val" id="dobu-abs">—</span><div class="res-unit">mcg/min</div></div>
+          <div class="res-item highlight"><div class="res-lbl">GAMAS</div><span class="res-val" id="dobu-gamas">—</span><div class="res-unit">mcg/kg/min</div></div>
+        </div>
+        <div class="alert-bar" id="dobu-alert"></div>
+      </div>
+    </div>
+
+    <!-- Adrenalina -->
+    <div class="drug-card">
+      <div class="drug-header">
+        <div class="drug-info">
+          <span class="drug-emoji">🟠</span>
+          <div><div class="drug-name">Adrenalina</div><div class="drug-amp">1 mg / amp</div></div>
+        </div>
+      </div>
+      <div class="drug-body">
+        <div class="input-row">
+          <div class="inp-group"><label>Ampollas</label><input type="number" id="adre-amp" placeholder="ej. 3" inputmode="decimal" min="0" oninput="calc('adre')"></div>
+          <div class="inp-group"><label>Vol final (mL)</label><input type="number" id="adre-vol" placeholder="ej. 50" inputmode="decimal" min="0" oninput="calc('adre')"></div>
+        </div>
+        <div class="inp-group full"><label>Velocidad bomba (mL/h)</label><input type="number" id="adre-vel" placeholder="ej. 5" inputmode="decimal" min="0" oninput="calc('adre')"></div>
+        <div class="results-grid">
+          <div class="res-item"><div class="res-lbl">Concentración</div><span class="res-val" id="adre-conc">—</span><div class="res-unit">mcg/mL</div></div>
+          <div class="res-item"><div class="res-lbl">Dosis abs.</div><span class="res-val" id="adre-abs">—</span><div class="res-unit">mcg/min</div></div>
+          <div class="res-item highlight"><div class="res-lbl">GAMAS</div><span class="res-val" id="adre-gamas">—</span><div class="res-unit">mcg/kg/min</div></div>
+        </div>
+        <div class="alert-bar" id="adre-alert"></div>
+      </div>
+    </div>
+
+    <!-- Vasopresina -->
+    <div class="drug-card">
+      <div class="drug-header">
+        <div class="drug-info">
+          <span class="drug-emoji">🔵</span>
+          <div><div class="drug-name">Vasopresina</div><div class="drug-amp">20 UI / amp · receptor V1</div></div>
+        </div>
+      </div>
+      <div class="drug-body">
+        <div class="input-row">
+          <div class="inp-group"><label>Ampollas</label><input type="number" id="vaso-amp" placeholder="ej. 1" inputmode="decimal" min="0" oninput="calcVaso()"></div>
+          <div class="inp-group"><label>Vol final (mL)</label><input type="number" id="vaso-vol" placeholder="ej. 100" inputmode="decimal" min="0" oninput="calcVaso()"></div>
+        </div>
+        <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--sub);margin-bottom:6px;">Dosis objetivo (UI/min)</div>
+        <div class="vaso-dose-row">
+          <div class="dose-opt" onclick="setVasoDose(0.03,this)"><span class="dose-opt-val">0.03</span><span class="dose-opt-unit">UI/min</span></div>
+          <div class="dose-opt" onclick="setVasoDose(0.04,this)"><span class="dose-opt-val">0.04</span><span class="dose-opt-unit">UI/min</span></div>
+          <div class="dose-opt" onclick="setVasoDose(0.06,this)"><span class="dose-opt-val">0.06</span><span class="dose-opt-unit">UI/min</span></div>
+        </div>
+        <div class="vaso-results">
+          <div class="res-item"><div class="res-lbl">Concentración</div><span class="res-val" id="vaso-conc">—</span><div class="res-unit">UI/mL</div></div>
+          <div class="res-item highlight"><div class="res-lbl">Vel. Bomba</div><span class="res-val" id="vaso-vel">—</span><div class="res-unit">mL/h</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NTG -->
+    <div class="drug-card">
+      <div class="drug-header">
+        <div class="drug-info">
+          <span class="drug-emoji">🟢</span>
+          <div><div class="drug-name">Nitroglicerina</div><div class="drug-amp">25 mg / amp</div></div>
+        </div>
+      </div>
+      <div class="drug-body">
+        <div class="input-row">
+          <div class="inp-group"><label>Ampollas</label><input type="number" id="ntg-amp" placeholder="ej. 2" inputmode="decimal" min="0" oninput="calc('ntg')"></div>
+          <div class="inp-group"><label>Vol final (mL)</label><input type="number" id="ntg-vol" placeholder="ej. 100" inputmode="decimal" min="0" oninput="calc('ntg')"></div>
+        </div>
+        <div class="inp-group full"><label>Velocidad bomba (mL/h)</label><input type="number" id="ntg-vel" placeholder="ej. 6" inputmode="decimal" min="0" oninput="calc('ntg')"></div>
+        <div class="results-grid">
+          <div class="res-item"><div class="res-lbl">Concentración</div><span class="res-val" id="ntg-conc">—</span><div class="res-unit">mcg/mL</div></div>
+          <div class="res-item"><div class="res-lbl">Dosis abs.</div><span class="res-val" id="ntg-abs">—</span><div class="res-unit">mcg/min</div></div>
+          <div class="res-item highlight"><div class="res-lbl">GAMAS</div><span class="res-val" id="ntg-gamas">—</span><div class="res-unit">mcg/kg/min</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ref-note">SSC 2021 · Dellinger et al. · Uso clínico de apoyo<br>Verificar siempre con protocolo institucional</div>
+  </div>
+
+  <script>
+    const DRUGS = {
+      ne:   { mgPerAmp: 4,    unit:'mcg' },
+      dobu: { mgPerAmp: 250,  unit:'mcg' },
+      adre: { mgPerAmp: 1,    unit:'mcg' },
+      ntg:  { mgPerAmp: 25,   unit:'mcg' },
+    };
+
+    let vasoDose = null;
+
+    function getPeso(){ return parseFloat(document.getElementById('peso').value)||0; }
+
+    function fmt(v,dec=2){ return v===null||isNaN(v)?'—':v.toFixed(dec); }
+
+    function setVal(id,val,colorClass){
+      const el=document.getElementById(id);
+      const s = val===null||isNaN(val)?'—':val;
+      el.textContent=s;
+      el.className='res-val';
+      if(s!=='—') el.classList.add('has-val');
+      if(colorClass) el.classList.add(colorClass);
+    }
+
+    function calc(drug){
+      const amp=parseFloat(document.getElementById(`${drug}-amp`).value);
+      const vol=parseFloat(document.getElementById(`${drug}-vol`).value);
+      const vel=parseFloat(document.getElementById(`${drug}-vel`).value);
+      const peso=getPeso();
+      const d=DRUGS[drug];
+
+      if(!amp||!vol||amp<=0||vol<=0){
+        setVal(`${drug}-conc`,null); setVal(`${drug}-abs`,null); setVal(`${drug}-gamas`,null);
+        if(drug==='ne') updateNEAlerts(null);
+        if(drug==='dobu'||drug==='adre') updateAlert(drug,null);
+        return;
+      }
+
+      const conc=(amp*d.mgPerAmp*1000)/vol;
+      setVal(`${drug}-conc`,conc<1?conc.toFixed(3):conc.toFixed(1));
+
+      if(!vel||vel<=0){
+        setVal(`${drug}-abs`,null); setVal(`${drug}-gamas`,null);
+        if(drug==='ne') updateNEAlerts(null);
+        if(drug==='dobu'||drug==='adre') updateAlert(drug,null);
+        return;
+      }
+
+      const dosisAbs=conc*vel/60;
+      setVal(`${drug}-abs`,dosisAbs<1?dosisAbs.toFixed(3):dosisAbs.toFixed(2));
+
+      if(peso>0){
+        const gamas=dosisAbs/peso;
+        let gc=null;
+        if(drug==='ne')  gc = gamas>0.4?'danger':gamas>0.25?'warn':null;
+        if(drug==='dobu') gc = gamas>10?'danger':gamas>5?'warn':null;
+        if(drug==='adre') gc = gamas>0.1?'danger':gamas>0.05?'warn':null;
+        setVal(`${drug}-gamas`,gamas<0.1?gamas.toFixed(4):gamas.toFixed(3),gc);
+        if(drug==='ne') updateNEAlerts(gamas);
+        if(drug==='dobu') updateAlert('dobu',gamas);
+        if(drug==='adre') updateAlert('adre',gamas);
+      } else {
+        setVal(`${drug}-gamas`,null);
+        const el=document.getElementById(`${drug}-gamas`);
+        el.textContent='Peso?'; el.className='res-val';
+        if(drug==='ne') updateNEAlerts(null);
+        if(drug==='dobu') updateAlert('dobu',null);
+        if(drug==='adre') updateAlert('adre',null);
+      }
+    }
+
+    function updateNEAlerts(gamas){
+      const alertEl=document.getElementById('ne-alert');
+      const sofaEl=document.getElementById('ne-sofa');
+      const badge=document.getElementById('ne-badge');
+
+      alertEl.className='alert-bar';
+      sofaEl.className='sofa-bar';
+      badge.className='drug-sofabadge';
+
+      if(gamas===null){return;}
+
+      // SOFA-2
+      let sofaClass='', sofaPts='', sofaLabel='';
+      if(gamas<=0.2){sofaClass='sofa2';sofaPts='2';sofaLabel='SOFA CV: 2 pts (NE ≤ 0.2)';}
+      else if(gamas<=0.4){sofaClass='sofa3';sofaPts='3';sofaLabel='SOFA CV: 3 pts (NE 0.2–0.4)';}
+      else{sofaClass='sofa4';sofaPts='4';sofaLabel='SOFA CV: 4 pts (NE > 0.4)';}
+
+      badge.textContent=`SOFA-2 CV: ${sofaPts}`;
+      badge.classList.add('visible',sofaClass);
+
+      sofaEl.innerHTML=`<span>${sofaLabel}</span><span class="sofa-pts">${sofaPts} pts</span>`;
+      sofaEl.classList.add('visible',sofaClass);
+
+      // Alerts
+      if(gamas>0.4){
+        alertEl.textContent='⚠ Shock refractario — considerar ECMO o Impella';
+        alertEl.classList.add('danger');
+      } else if(gamas>0.25){
+        alertEl.textContent='⚠ NE > 0.25 mcg/kg/min — agregar vasopresina (SSC 2021)';
+        alertEl.classList.add('warn');
+      }
+    }
+
+    function updateAlert(drug,gamas){
+      const el=document.getElementById(`${drug}-alert`);
+      el.className='alert-bar';
+      if(gamas===null) return;
+      if(drug==='dobu'){
+        if(gamas>10){el.textContent='⚠ Dosis > 10 mcg/kg/min — riesgo de arritmia. Reevaluar.';el.classList.add('danger');}
+        else if(gamas>5){el.textContent='↑ Dosis > 5 mcg/kg/min — vigilar ritmo cardíaco.';el.classList.add('warn');}
+      }
+      if(drug==='adre'){
+        if(gamas>0.1){el.textContent='⚠ Adrenalina > 0.1 mcg/kg/min — monitorear lactato (glucogenólisis hepática).';el.classList.add('danger');}
+        else if(gamas>0.05){el.textContent='↑ Dosis en rango moderado — vigilar lactato.';el.classList.add('warn');}
+      }
+    }
+
+    function setVasoDose(dose, el){
+      document.querySelectorAll('.dose-opt').forEach(o=>o.classList.remove('sel'));
+      el.classList.add('sel');
+      vasoDose=dose;
+      calcVaso();
+    }
+
+    function calcVaso(){
+      const amp=parseFloat(document.getElementById('vaso-amp').value);
+      const vol=parseFloat(document.getElementById('vaso-vol').value);
+      const concEl=document.getElementById('vaso-conc');
+      const velEl=document.getElementById('vaso-vel');
+
+      if(!amp||!vol||amp<=0||vol<=0){
+        concEl.textContent='—'; concEl.className='res-val';
+        velEl.textContent='—'; velEl.className='res-val'; return;
+      }
+      const conc=(amp*20)/vol;
+      concEl.textContent=conc.toFixed(3); concEl.className='res-val has-val';
+
+      if(vasoDose===null){velEl.textContent='—'; velEl.className='res-val'; return;}
+      const vel=(vasoDose*60)/conc;
+      velEl.textContent=vel.toFixed(1); velEl.className='res-val has-val';
+    }
+
+    function recalcAll(){
+      ['ne','dobu','adre','ntg'].forEach(calc);
+      calcVaso();
+    }
+
+    (function(){
+      const svg=document.querySelector('.ecg-bg');
+      const W=window.innerWidth,H=window.innerHeight;
+      svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+      const BW=240,n=Math.ceil(W/BW)+2;
+      function line(y,s,o,w){
+        let d=`M${-BW},${y}`;
+        for(let i=0;i<n;i++){const x=i*BW-BW;
+          d+=` H${x+28} L${x+31},${y-3} L${x+36},${y-4} L${x+40},${y} H${x+56} L${x+59},${y+4} L${x+63},${y-38} L${x+68},${y+12} L${x+72},${y} H${x+78} L${x+83},${y-2} L${x+96},${y-9} L${x+110},${y} H${x+BW}`;}
+        return `<path d="${d}" stroke="${s}" stroke-width="${w}" fill="none" opacity="${o}" stroke-linecap="round" stroke-linejoin="round"/>`;
+      }
+      svg.innerHTML=[line(H*.22,'#e05555',0.35,1.5),line(H*.52,'#e05555',0.18,1.2),line(H*.76,'#378ADD',0.12,1.2)].join('');
+    })();
+  </script>
+</body>
+</html>

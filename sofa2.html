@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SOFA-2 2025 — UTI Tools</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#0a0f1e; --surface:rgba(255,255,255,0.04); --surface-hover:rgba(255,255,255,0.08);
+      --border:rgba(255,255,255,0.10); --text:#fff; --sub:rgba(255,255,255,0.55); --muted:rgba(255,255,255,0.35);
+      --input-bg:#0f1729; --accent:#4a6cf7;
+      --green:#1D9E75; --ga:rgba(29,158,117,0.15); --gb:rgba(29,158,117,0.30);
+      --yellow:#EF9F27; --ya:rgba(239,159,39,0.15); --yb:rgba(239,159,39,0.30);
+      --orange:#f97316; --oa:rgba(249,115,22,0.12); --ob:rgba(249,115,22,0.30);
+      --red:#e05555; --ra:rgba(224,85,85,0.15); --rb:rgba(224,85,85,0.30);
+    }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-height: 100vh; }
+    .ecg-bg { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 0; overflow: visible; }
+    .page { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding: 28px 16px 60px; }
+
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 600;
+      color: var(--sub); text-decoration: none; background: var(--surface); border: 1px solid var(--border);
+      padding: 6px 12px; border-radius: 8px; transition: background 0.2s, color 0.2s; margin-bottom: 20px;
+    }
+    .back-btn:hover { background: var(--surface-hover); color: var(--text); }
+
+    .header { margin-bottom: 18px; }
+    h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.5px; }
+    .header p { font-size: 0.78rem; color: var(--muted); margin-top: 5px; }
+
+    /* Sticky score bar */
+    .score-bar {
+      background: rgba(15,23,41,0.85); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      padding: 13px 18px; display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px; position: sticky; top: 8px; z-index: 10;
+    }
+    .score-bar-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); }
+    .score-bar-right { text-align: right; }
+    .score-bar-value { font-size: 2rem; font-weight: 800; color: rgba(255,255,255,0.2); line-height: 1; transition: color 0.3s; }
+    .score-bar-value.green  { color: var(--green); }
+    .score-bar-value.yellow { color: var(--yellow); }
+    .score-bar-value.orange { color: var(--orange); }
+    .score-bar-value.red    { color: var(--red); }
+    .score-bar-max { font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
+
+    /* System cards */
+    .sys-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 10px; overflow: hidden; }
+    .sys-header { padding: 13px 15px 11px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sys-name { font-size: 0.9rem; font-weight: 700; }
+    .sys-note { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+    .sys-pts { font-size: 1.4rem; font-weight: 800; color: rgba(255,255,255,0.18); min-width: 24px; text-align: right; transition: color 0.2s; }
+    .sys-pts.active { color: var(--accent); }
+
+    .options { padding: 9px 12px 12px; display: flex; flex-direction: column; gap: 6px; }
+    .option {
+      display: flex; align-items: flex-start; gap: 10px; padding: 9px 11px;
+      border-radius: 8px; border: 1px solid rgba(255,255,255,0.07);
+      background: rgba(255,255,255,0.02); cursor: pointer; transition: background 0.15s, border-color 0.15s;
+    }
+    .option:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.14); }
+    .option.sel { background: rgba(74,108,247,0.12); border-color: rgba(74,108,247,0.40); }
+    .opt-score { font-size: 0.95rem; font-weight: 800; color: rgba(255,255,255,0.25); min-width: 20px; margin-top: 1px; flex-shrink: 0; }
+    .option.sel .opt-score { color: var(--accent); }
+    .opt-main { font-size: 0.83rem; font-weight: 600; color: var(--text); line-height: 1.35; }
+    .opt-sub  { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+
+    /* RRT toggle */
+    .rrt-wrap { padding: 0 12px 12px; }
+    .rrt-toggle {
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+      border-radius: 8px; border: 1px solid rgba(255,255,255,0.07);
+      background: rgba(255,255,255,0.02); cursor: pointer; transition: background 0.15s, border-color 0.15s;
+    }
+    .rrt-toggle.active { background: var(--ra); border-color: var(--rb); }
+    .rrt-dot {
+      width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.2);
+      flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+    }
+    .rrt-toggle.active .rrt-dot { background: var(--red); border-color: var(--red); }
+    .rrt-dot::after { content:''; width:6px; height:6px; border-radius:50%; background:#fff; display:none; }
+    .rrt-toggle.active .rrt-dot::after { display: block; }
+    .rrt-label { font-size: 0.83rem; font-weight: 600; }
+    .rrt-sub   { font-size: 0.7rem; color: var(--muted); }
+
+    /* Result */
+    .result-section {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px 18px; margin-top: 8px; transition: border-color 0.3s, background 0.3s;
+    }
+    .result-section.green  { border-color: var(--gb); background: var(--ga); }
+    .result-section.yellow { border-color: var(--yb); background: var(--ya); }
+    .result-section.orange { border-color: var(--ob); background: var(--oa); }
+    .result-section.red    { border-color: var(--rb); background: var(--ra); }
+
+    .result-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+    .result-big { font-size: 2.6rem; font-weight: 800; color: rgba(255,255,255,0.18); line-height: 1; transition: color 0.3s; }
+    .result-big.green  { color: var(--green); }
+    .result-big.yellow { color: var(--yellow); }
+    .result-big.orange { color: var(--orange); }
+    .result-big.red    { color: var(--red); }
+    .res-tag { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 10px; border-radius: 20px; }
+    .res-tag.green  { background: var(--ga); color: var(--green); border: 1px solid var(--gb); }
+    .res-tag.yellow { background: var(--ya); color: var(--yellow); border: 1px solid var(--yb); }
+    .res-tag.orange { background: var(--oa); color: var(--orange); border: 1px solid var(--ob); }
+    .res-tag.red    { background: var(--ra); color: var(--red); border: 1px solid var(--rb); }
+
+    .divider { height: 1px; background: var(--border); margin: 12px 0; }
+    .interp-row { display: flex; gap: 12px; margin-bottom: 12px; }
+    .interp-block { flex: 1; }
+    .interp-lbl { font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 3px; }
+    .interp-val { font-size: 0.88rem; font-weight: 700; }
+
+    .conduct { background: rgba(255,255,255,0.04); border-radius: 8px; padding: 11px 13px; font-size: 0.82rem; color: rgba(255,255,255,0.65); line-height: 1.6; }
+    .conduct strong { color: var(--text); }
+
+    .reset-btn {
+      width: 100%; margin-top: 14px; padding: 12px; background: none; border: 1px solid var(--border);
+      border-radius: 8px; font-size: 0.86rem; font-weight: 600; color: var(--muted); cursor: pointer; transition: background 0.2s, color 0.2s;
+    }
+    .reset-btn:hover { background: var(--surface-hover); color: var(--sub); }
+    .ref-note { font-size: 0.7rem; color: var(--muted); text-align: center; margin-top: 18px; font-style: italic; }
+
+    @media (max-width: 380px) { .interp-row { flex-direction: column; gap: 8px; } }
+  </style>
+</head>
+<body>
+  <svg class="ecg-bg" xmlns="http://www.w3.org/2000/svg"></svg>
+  <div class="page">
+    <a class="back-btn" href="index.html">← Inicio</a>
+    <div class="header">
+      <h1>SOFA-2 Score 2025</h1>
+      <p>Ranzani et al. JAMA 2025 · 6 sistemas · Mortalidad estimada</p>
+    </div>
+
+    <div class="score-bar">
+      <div><div class="score-bar-label">Puntaje total</div></div>
+      <div class="score-bar-right">
+        <div class="score-bar-value" id="totalDisplay">—</div>
+        <div class="score-bar-max">/ 24 pts</div>
+      </div>
+    </div>
+
+    <!-- 1. Respiratorio -->
+    <div class="sys-card">
+      <div class="sys-header">
+        <div><div class="sys-name">🫁 Respiratorio</div><div class="sys-note">PaO₂/FiO₂ o SpO₂/FiO₂ · HFNC/VNI requerido en score 3–4</div></div>
+        <div class="sys-pts" id="pts-resp">—</div>
+      </div>
+      <div class="options" id="opts-resp">
+        <label class="option" onclick="sel('resp',0,this)"><div class="opt-score">0</div><div><div class="opt-main">PaO₂/FiO₂ ≥ 400 · SpO₂/FiO₂ ≥ 315</div><div class="opt-sub">Sin soporte o O₂ bajo flujo</div></div></label>
+        <label class="option" onclick="sel('resp',1,this)"><div class="opt-score">1</div><div><div class="opt-main">PaO₂/FiO₂ 300–399 · SpO₂/FiO₂ 264–314</div></div></label>
+        <label class="option" onclick="sel('resp',2,this)"><div class="opt-score">2</div><div><div class="opt-main">PaO₂/FiO₂ 200–299 · SpO₂/FiO₂ 221–263</div></div></label>
+        <label class="option" onclick="sel('resp',3,this)"><div class="opt-score">3</div><div><div class="opt-main">PaO₂/FiO₂ 100–199 · SpO₂/FiO₂ 148–220</div><div class="opt-sub">Con HFNC, VNI o ARM</div></div></label>
+        <label class="option" onclick="sel('resp',4,this)"><div class="opt-score">4</div><div><div class="opt-main">PaO₂/FiO₂ &lt; 100 · SpO₂/FiO₂ &lt; 148</div><div class="opt-sub">Con HFNC, VNI o ARM</div></div></label>
+      </div>
+    </div>
+
+    <!-- 2. Cardiovascular -->
+    <div class="sys-card">
+      <div class="sys-header">
+        <div><div class="sys-name">❤️ Cardiovascular</div><div class="sys-note">PAM y vasopresores · dosis en µg/kg/min</div></div>
+        <div class="sys-pts" id="pts-cardio">—</div>
+      </div>
+      <div class="options" id="opts-cardio">
+        <label class="option" onclick="sel('cardio',0,this)"><div class="opt-score">0</div><div><div class="opt-main">PAM ≥ 70 mmHg sin vasopresores</div></div></label>
+        <label class="option" onclick="sel('cardio',1,this)"><div class="opt-score">1</div><div><div class="opt-main">PAM &lt; 70 mmHg sin vasopresores</div></div></label>
+        <label class="option" onclick="sel('cardio',2,this)"><div class="opt-score">2</div><div><div class="opt-main">NE o Epi ≤ 0.2 µg/kg/min</div><div class="opt-sub">O vasopresina dosis baja (≤ 0.03 UI/min)</div></div></label>
+        <label class="option" onclick="sel('cardio',3,this)"><div class="opt-score">3</div><div><div class="opt-main">NE o Epi &gt; 0.2 – 0.4 µg/kg/min</div></div></label>
+        <label class="option" onclick="sel('cardio',4,this)"><div class="opt-score">4</div><div><div class="opt-main">NE o Epi &gt; 0.4 µg/kg/min · ECMO · Impella</div></div></label>
+      </div>
+    </div>
+
+    <!-- 3. Coagulación -->
+    <div class="sys-card">
+      <div class="sys-header">
+        <div><div class="sys-name">🩸 Coagulación</div><div class="sys-note">Plaquetas (× 10³/µL)</div></div>
+        <div class="sys-pts" id="pts-coag">—</div>
+      </div>
+      <div class="options" id="opts-coag">
+        <label class="option" onclick="sel('coag',0,this)"><div class="opt-score">0</div><div><div class="opt-main">≥ 150</div></div></label>
+        <label class="option" onclick="sel('coag',1,this)"><div class="opt-score">1</div><div><div class="opt-main">100 – 149</div></div></label>
+        <label class="option" onclick="sel('coag',2,this)"><div class="opt-score">2</div><div><div class="opt-main">50 – 99</div></div></label>
+        <label class="option" onclick="sel('coag',3,this)"><div class="opt-score">3</div><div><div class="opt-main">20 – 49</div></div></label>
+        <label class="option" onclick="sel('coag',4,this)"><div class="opt-score">4</div><div><div class="opt-main">&lt; 20</div></div></label>
+      </div>
+    </div>
+
+    <!-- 4. Hígado -->
+    <div class="sys-card">
+      <div class="sys-header">
+        <div><div class="sys-name">🟡 Hígado</div><div class="sys-note">Bilirrubina total (mg/dL)</div></div>
+        <div class="sys-pts" id="pts-liver">—</div>
+      </div>
+      <div class="options" id="opts-liver">
+        <label class="option" onclick="sel('liver',0,this)"><div class="opt-score">0</div><div><div class="opt-main">&lt; 1.2 mg/dL</div></div></label>
+        <label class="option" onclick="sel('liver',1,this)"><div class="opt-score">1</div><div><div class="opt-main">1.2 – 1.9 mg/dL</div></div></label>
+        <label class="option" onclick="sel('liver',2,this)"><div class="opt-score">2</div><div><div class="opt-main">2.0 – 5.9 mg/dL</div></div></label>
+        <label class="option" onclick="sel('liver',3,this)"><div class="opt-score">3</div><div><div class="opt-main">6.0 – 11.9 mg/dL</div></div></label>
+        <label class="option" onclick="sel('liver',4,this)"><div class="opt-score">4</div><div><div class="opt-main">≥ 12.0 mg/dL</div></div></label>
+      </div>
+    </div>
+
+    <!-- 5. Neurológico -->
+    <div class="sys-card">
+      <div class="sys-header">
+        <div><div class="sys-name">🧠 Neurológico</div><div class="sys-note">GCS · Si sedado, usar GCS previo a la sedación</div></div>
+        <div class="sys-pts" id="pts-neuro">—</div>
+      </div>
+      <div class="options" id="opts-neuro">
+        <label class="option" onclick="sel('neuro',0,this)"><div class="opt-score">0</div><div><div class="opt-main">GCS 15</div></div></label>
+        <label class="option" onclick="sel('neuro',1,this)"><div class="opt-score">1</div><div><div class="opt-main">GCS 13 – 14</div></div></label>
+        <label class="option" onclick="sel('neuro',2,this)"><div class="opt-score">2</div><div><div class="opt-main">GCS 10 – 12</div></div></label>
+        <label class="option" onclick="sel('neuro',3,this)"><div class="opt-score">3</div><div><div class="opt-main">GCS 6 – 9</div></div></label>
+        <label class="option" onclick="sel('neuro',4,this)"><div class="opt-score">4</div><div><div class="opt-main">GCS &lt; 6</div></div></label>
+      </div>
+    </div>
+
+    <!-- 6. Renal -->
+    <div class="sys-card">
+      <div class="sys-header">
+        <div><div class="sys-name">🫘 Renal</div><div class="sys-note">Creatinina (mg/dL) o diuresis · TRR = 4 pts automático</div></div>
+        <div class="sys-pts" id="pts-renal">—</div>
+      </div>
+      <div class="rrt-wrap">
+        <div class="rrt-toggle" id="rrt-toggle" onclick="toggleRRT()">
+          <div class="rrt-dot"></div>
+          <div><div class="rrt-label">TRR aguda activa (HD / CRRT)</div><div class="rrt-sub">→ 4 puntos automáticos</div></div>
+        </div>
+      </div>
+      <div class="options" id="opts-renal">
+        <label class="option" onclick="sel('renal',0,this)"><div class="opt-score">0</div><div><div class="opt-main">Creatinina &lt; 1.2 mg/dL</div></div></label>
+        <label class="option" onclick="sel('renal',1,this)"><div class="opt-score">1</div><div><div class="opt-main">Creatinina 1.2 – 1.9 mg/dL</div></div></label>
+        <label class="option" onclick="sel('renal',2,this)"><div class="opt-score">2</div><div><div class="opt-main">Creatinina 2.0 – 3.4 mg/dL</div></div></label>
+        <label class="option" onclick="sel('renal',3,this)"><div class="opt-score">3</div><div><div class="opt-main">Creatinina 3.5 – 4.9 mg/dL</div><div class="opt-sub">O diuresis &lt; 500 mL/día</div></div></label>
+        <label class="option" onclick="sel('renal',4,this)"><div class="opt-score">4</div><div><div class="opt-main">Creatinina ≥ 5.0 mg/dL</div><div class="opt-sub">O diuresis &lt; 200 mL/día</div></div></label>
+      </div>
+    </div>
+
+    <!-- Resultado -->
+    <div class="result-section" id="resultSection">
+      <div class="result-row">
+        <div>
+          <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted);margin-bottom:6px;">SOFA-2 Total</div>
+          <div class="result-big" id="resultBig">—</div>
+        </div>
+        <div id="resultTag" style="margin-top:4px;"></div>
+      </div>
+      <div class="divider"></div>
+      <div class="interp-row">
+        <div class="interp-block"><div class="interp-lbl">Mortalidad estimada</div><div class="interp-val" id="mortality">—</div></div>
+        <div class="interp-block"><div class="interp-lbl">Sistemas comprometidos</div><div class="interp-val" id="systems">—</div></div>
+      </div>
+      <div class="divider"></div>
+      <div class="conduct" id="conductBox">Completá los 6 sistemas para ver la interpretación.</div>
+    </div>
+
+    <button class="reset-btn" onclick="resetAll()">Limpiar todo</button>
+    <div class="ref-note">Ranzani OT et al. JAMA 2025 · Umbrales cardiovasculares y respiratorios actualizados</div>
+  </div>
+
+  <script>
+    const scores={resp:null,cardio:null,coag:null,liver:null,neuro:null,renal:null};
+    let rrtActive=false;
+
+    function sel(sys,val,el){
+      document.querySelectorAll(`#opts-${sys} .option`).forEach(o=>o.classList.remove('sel'));
+      el.classList.add('sel');
+      scores[sys]=val;
+      const p=document.getElementById(`pts-${sys}`);
+      p.textContent=val; p.classList.add('active');
+      calculate();
+    }
+
+    function toggleRRT(){
+      rrtActive=!rrtActive;
+      const tog=document.getElementById('rrt-toggle');
+      const opts=document.getElementById('opts-renal');
+      tog.classList.toggle('active',rrtActive);
+      if(rrtActive){
+        scores.renal=4; opts.style.opacity='0.3'; opts.style.pointerEvents='none';
+        const p=document.getElementById('pts-renal'); p.textContent='4'; p.classList.add('active');
+      } else {
+        opts.style.opacity='1'; opts.style.pointerEvents='auto';
+        const selOpt=opts.querySelector('.option.sel');
+        if(selOpt){scores.renal=parseInt(selOpt.querySelector('.opt-score').textContent);}
+        else{scores.renal=null; const p=document.getElementById('pts-renal'); p.textContent='—'; p.classList.remove('active');}
+      }
+      calculate();
+    }
+
+    const INTERP=[
+      {max:5,  tag:'Bajo riesgo',    c:'green',  mort:'< 10%',  conduct:'<strong>Monitoreo estándar.</strong> Disfunción orgánica leve o ausente. Reevaluar en 24–48 h. Optimizar el foco infeccioso y el volumen.'},
+      {max:8,  tag:'Riesgo moderado',c:'yellow', mort:'10–25%', conduct:'<strong>Vigilancia estrecha en UCI.</strong> Falla orgánica en ≥ 1 sistema. Asegurar metas hemodinámicas (PAM ≥ 65), balance hídrico progresivo, cultivos y antibiótico precoz.'},
+      {max:11, tag:'Riesgo alto',    c:'orange', mort:'25–50%', conduct:'<strong>UCI — soporte activo.</strong> Falla multisistémica incipiente. Considerar ARM precoz si deterioro respiratorio, vasopresores, protección renal (evitar nefrotóxicos).'},
+      {max:15, tag:'Muy alto riesgo',c:'red',    mort:'50–80%', conduct:'<strong>Soporte máximo y reevaluación diaria.</strong> Falla orgánica múltiple establecida. Discutir con equipo y familia la proporcionalidad del esfuerzo terapéutico.'},
+      {max:24, tag:'Riesgo crítico', c:'red',    mort:'> 80%',  conduct:'<strong>Discutir objetivos de cuidado.</strong> Falla orgánica catastrófica. Evaluar soporte máximo vs. cuidados paliativos centrados en el confort en conjunto con la familia.'},
+    ];
+
+    function calculate(){
+      const vals=Object.values(scores);
+      const filled=vals.filter(v=>v!==null).length;
+      const total=vals.reduce((a,v)=>a+(v??0),0);
+      const tD=document.getElementById('totalDisplay'),rB=document.getElementById('resultBig');
+      const rT=document.getElementById('resultTag'),mo=document.getElementById('mortality');
+      const sy=document.getElementById('systems'),co=document.getElementById('conductBox');
+      const rs=document.getElementById('resultSection');
+      if(filled===0){
+        tD.textContent='—'; tD.className='score-bar-value';
+        rB.textContent='—'; rB.className='result-big';
+        rT.innerHTML=''; mo.textContent='—'; sy.textContent='—';
+        co.innerHTML='Completá los 6 sistemas para ver la interpretación.';
+        rs.className='result-section'; return;
+      }
+      tD.textContent=total;
+      const ip=INTERP.find(i=>total<=i.max);
+      tD.className=`score-bar-value ${ip.c}`;
+      rB.textContent=total; rB.className=`result-big ${ip.c}`;
+      rs.className=`result-section ${ip.c}`;
+      rT.innerHTML=`<span class="res-tag ${ip.c}">${ip.tag}</span>`;
+      mo.textContent=ip.mort;
+      const comp=vals.filter(v=>v!==null&&v>0).length;
+      sy.textContent=`${comp} / ${filled}`;
+      co.innerHTML=filled<6?`<em style="color:var(--muted)">(${filled}/6 sistemas) ${ip.conduct}</em>`:ip.conduct;
+    }
+
+    function resetAll(){
+      Object.keys(scores).forEach(k=>scores[k]=null);
+      rrtActive=false;
+      document.querySelectorAll('.option').forEach(o=>o.classList.remove('sel'));
+      document.querySelectorAll('.sys-pts').forEach(el=>{el.textContent='—';el.classList.remove('active');});
+      document.getElementById('rrt-toggle').classList.remove('active');
+      const opts=document.getElementById('opts-renal');
+      opts.style.opacity='1'; opts.style.pointerEvents='auto';
+      calculate();
+    }
+
+    (function(){
+      const svg=document.querySelector('.ecg-bg');
+      const W=window.innerWidth,H=window.innerHeight;
+      svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+      const BW=240,n=Math.ceil(W/BW)+2;
+      function line(y,s,o,w){
+        let d=`M${-BW},${y}`;
+        for(let i=0;i<n;i++){const x=i*BW-BW;
+          d+=` H${x+28} L${x+31},${y-3} L${x+36},${y-4} L${x+40},${y} H${x+56} L${x+59},${y+4} L${x+63},${y-38} L${x+68},${y+12} L${x+72},${y} H${x+78} L${x+83},${y-2} L${x+96},${y-9} L${x+110},${y} H${x+BW}`;}
+        return `<path d="${d}" stroke="${s}" stroke-width="${w}" fill="none" opacity="${o}" stroke-linecap="round" stroke-linejoin="round"/>`;
+      }
+      svg.innerHTML=[line(H*.22,'#e05555',0.35,1.5),line(H*.52,'#e05555',0.18,1.2),line(H*.76,'#378ADD',0.12,1.2)].join('');
+    })();
+  </script>
+</body>
+</html>
