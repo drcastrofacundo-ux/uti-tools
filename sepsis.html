@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sepsis 2022-2026 — UTI Tools</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#0a0f1e; --surface:rgba(255,255,255,0.04); --surface-hover:rgba(255,255,255,0.08);
+      --border:rgba(255,255,255,0.10); --text:#fff; --sub:rgba(255,255,255,0.55); --muted:rgba(255,255,255,0.35);
+      --green:#1D9E75; --ga:rgba(29,158,117,0.15); --gb:rgba(29,158,117,0.30);
+      --yellow:#EF9F27; --ya:rgba(239,159,39,0.15); --yb:rgba(239,159,39,0.30);
+      --red:#e05555; --ra:rgba(224,85,85,0.15); --rb:rgba(224,85,85,0.30);
+      --gray:#8b93a8; --gray-a:rgba(139,147,168,0.15); --gray-b:rgba(139,147,168,0.30);
+    }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-height: 100vh; }
+    .ecg-bg { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 0; overflow: visible; }
+    .page { position: relative; z-index: 1; max-width: 620px; margin: 0 auto; padding: 28px 18px 70px; }
+
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 600;
+      color: var(--sub); text-decoration: none; background: var(--surface); border: 1px solid var(--border);
+      padding: 6px 12px; border-radius: 8px; transition: background 0.2s, color 0.2s; margin-bottom: 22px;
+    }
+    .back-btn:hover { background: var(--surface-hover); color: var(--text); }
+
+    .header { margin-bottom: 18px; }
+    h1 { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.5px; }
+    .header p { font-size: 0.82rem; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+
+    .disclaimer {
+      background: var(--ya); border: 1px solid var(--yb); border-radius: 10px;
+      padding: 13px 15px; margin: 16px 0 22px; font-size: 0.78rem; line-height: 1.6; color: rgba(255,255,255,0.75);
+    }
+    .disclaimer strong { color: var(--yellow); }
+
+    .toc { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 24px; }
+    .toc a {
+      font-size: 0.68rem; font-weight: 700; text-decoration: none; color: var(--sub);
+      background: var(--surface); border: 1px solid var(--border); padding: 5px 10px; border-radius: 100px;
+      transition: background 0.2s, color 0.2s;
+    }
+    .toc a:hover { background: var(--surface-hover); color: var(--text); }
+
+    .section {
+      border: 1px solid var(--border); border-radius: 12px; margin-bottom: 10px; overflow: hidden;
+      background: var(--surface); scroll-margin-top: 16px;
+    }
+    .section.key { border-color: var(--gb); background: var(--ga); }
+    .sec-toggle {
+      width: 100%; padding: 14px 16px; background: none; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left;
+    }
+    .sec-toggle:hover { background: var(--surface-hover); }
+    .sec-title { display: flex; align-items: center; gap: 10px; font-size: 0.94rem; font-weight: 800; }
+    .sec-icon { font-size: 1.15rem; flex-shrink: 0; }
+    .sec-count { font-size: 0.65rem; font-weight: 700; color: var(--muted); background: rgba(255,255,255,0.06); padding: 2px 8px; border-radius: 100px; flex-shrink: 0; }
+    .sec-arrow { font-size: 0.65rem; color: var(--muted); transition: transform 0.25s; flex-shrink: 0; }
+    .sec-arrow.open { transform: rotate(180deg); }
+    .sec-body { display: none; padding: 4px 16px 16px; }
+    .sec-body.open { display: block; }
+
+    .study-card { padding: 12px 0; border-top: 1px solid var(--border); }
+    .study-card:first-child { border-top: none; padding-top: 4px; }
+    .study-head { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin-bottom: 6px; }
+    .study-name { font-size: 0.86rem; font-weight: 700; color: var(--text); }
+    .tag { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; padding: 2px 7px; border-radius: 6px; white-space: nowrap; }
+    .tag.green  { background: var(--ga); color: var(--green); border: 1px solid var(--gb); }
+    .tag.yellow { background: var(--ya); color: var(--yellow); border: 1px solid var(--yb); }
+    .tag.red    { background: var(--ra); color: var(--red); border: 1px solid var(--rb); }
+    .tag.gray   { background: var(--gray-a); color: var(--gray); border: 1px solid var(--gray-b); }
+    .study-desc { font-size: 0.82rem; line-height: 1.6; color: rgba(255,255,255,0.75); margin-bottom: 5px; }
+    .study-desc strong { color: var(--text); }
+    .study-cite { font-size: 0.7rem; color: var(--muted); font-style: italic; }
+
+    .gaps-list { list-style: none; }
+    .gaps-list li { font-size: 0.82rem; line-height: 1.6; color: rgba(255,255,255,0.75); padding: 8px 0; border-top: 1px solid var(--border); }
+    .gaps-list li:first-child { border-top: none; padding-top: 4px; }
+    .gaps-list strong { color: var(--gray); }
+
+    .legend { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 24px; font-size: 0.68rem; color: var(--muted); }
+    .legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .dot.green { background: var(--green); } .dot.yellow { background: var(--yellow); } .dot.red { background: var(--red); } .dot.gray { background: var(--gray); }
+
+    footer { margin-top: 30px; text-align: center; font-size: 0.68rem; color: rgba(255,255,255,0.25); line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <svg class="ecg-bg" xmlns="http://www.w3.org/2000/svg"></svg>
+  <div class="page">
+    <a class="back-btn" href="index.html">← Inicio</a>
+    <div class="header">
+      <h1>Sepsis — Actualización 2022–2026</h1>
+      <p>Síntesis clínica de literatura, guías y ensayos sobre sepsis y shock séptico desde enero 2022. Organizado por tema, con fuente y relevancia clínica de cada hallazgo.</p>
+    </div>
+
+    <div class="disclaimer">
+      <strong>Nota metodológica:</strong> cada ítem surge de búsqueda web activa (no de memoria), citando estudio/revista/año. Cuando SCCM/ESICM bloquearon el acceso al PDF original de una guía, se aclara y se recomienda verificar la redacción exacta antes de citarla textualmente. Las cifras de epidemiología global tienen discrepancias entre fuentes — se señalan. Sección final <a href="#gaps" style="color:inherit">"Huecos"</a> lista qué no se pudo confirmar.
+    </div>
+
+    <div class="legend">
+      <span><span class="dot green"></span>Sin cambio / refuerza práctica</span>
+      <span><span class="dot yellow"></span>Evolucionando / vigilar</span>
+      <span><span class="dot red"></span>Cambia la práctica</span>
+      <span><span class="dot gray"></span>Hueco / investigación</span>
+    </div>
+
+    <div class="toc">
+      <a href="#key">🔑 Lo esencial</a>
+      <a href="#s1">Definiciones</a>
+      <a href="#s2">Guías</a>
+      <a href="#s3">Fluidos</a>
+      <a href="#s4">Vasopresores</a>
+      <a href="#s5">Corticoides</a>
+      <a href="#s6">Perfusión</a>
+      <a href="#s7">Antimicrobianos</a>
+      <a href="#s8">Biomarcadores</a>
+      <a href="#s9">IA / predicción</a>
+      <a href="#s10">Pediatría</a>
+      <a href="#s11">Secuelas / PICS</a>
+      <a href="#s12">Epidemiología</a>
+      <a href="#s13">Otros ensayos</a>
+      <a href="#gaps">Huecos</a>
+    </div>
+
+    <div id="sections"></div>
+
+    <footer>
+      UTI Tools · Revisión de literatura al 07/2026 · No reemplaza el juicio clínico ni la lectura de la fuente primaria
+    </footer>
+  </div>
+
+  <script>
+    const SECTIONS = [
+      { id:'key', icon:'🔑', title:'Lo esencial — empezá por acá', open:true, key:true, items:[
+        {tag:'red', name:'PAM objetivo en ≥65 años', desc:'<strong>OPTPRESS</strong> (Japón, Intensive Care Medicine 2025) detenido por daño: apuntar a PAM 80-85 mmHg en añosos aumentó mortalidad a 90 días (39.3% vs 28.6%) vs. PAM 65-70 mmHg. En el adulto mayor, "más alto no es mejor".', cite:'OPTPRESS Investigators, Intensive Care Medicine 2025'},
+        {tag:'red', name:'Relleno capilar como guía activa de reanimación', desc:'<strong>ANDROMEDA-SHOCK-2</strong> (JAMA 2025): algoritmo de reanimación personalizado guiado por CRT horario redujo duración de soporte orgánico (win ratio 1.16) en shock séptico precoz. El CRT deja de ser solo monitoreo pasivo.', cite:'Hernández G et al., JAMA 2025'},
+        {tag:'yellow', name:'Corticoides: sumar fludrocortisona', desc:'Metaanálisis de datos individuales (NEJM Evidence 2024) muestra beneficio de mortalidad más claro con <strong>hidrocortisona + fludrocortisona</strong> (RR 0.86) que con hidrocortisona sola (RR 0.96, no concluyente).', cite:'Pirracchio R et al., NEJM Evidence 2024'},
+        {tag:'red', name:'Phoenix Criteria reemplaza IPSCC 2005 (pediatría)', desc:'Nuevo score de disfunción orgánica para sepsis/shock séptico pediátrico, validado en ~3.6M encuentros. Si atendés UTIP, es el cambio de definición más importante del período.', cite:'Schlapbach LJ et al., JAMA 2024;331(8):675-686'},
+        {tag:'red', name:'Guías SSC 2026 (adultos y pediátrica)', desc:'Reemplazan a SSC 2021. Novedades: de-resuscitation explícita tras la reanimación inicial, HFNC como soporte respiratorio inicial preferido, optimización PK/PD de antimicrobianos, objetivos de PAM diferenciados por edad, seguimiento post-alta. Texto completo bloqueado (403) — verificar redacción exacta antes de citar.', cite:'SCCM/ESICM, Intensive Care Medicine / Critical Care Medicine 2026'},
+        {tag:'green', name:'Ni el volumen ni el tipo de fluido cambian mortalidad dura', desc:'CLASSIC, CLOVERS, PLUS y BaSICS (todos NEJM/JAMA 2021-2023) coinciden: restrictivo vs. liberal y balanceado vs. salino no muestran diferencia consistente en mortalidad. Da licencia para individualizar.', cite:'Ver sección Fluidos'},
+        {tag:'red', name:'Infusión continua de betalactámicos no reduce mortalidad', desc:'<strong>BLING III</strong> (JAMA 2024, 104 UCIs): sin diferencia en mortalidad a 90 días vs. infusión intermitente. Templa la adopción generalizada de protocolos de infusión extendida basada solo en racional PK/PD.', cite:'BLING III Study Group, JAMA 2024'},
+        {tag:'red', name:'Reversión de la tendencia epidemiológica global', desc:'GBD 2021 (Lancet Global Health 2025): 166 millones de casos y 21.4 millones de muertes por sepsis en 2021 — la mejora sostenida desde los 90 se revirtió en 2020-2021, atribuido en gran parte a COVID-19.', cite:'GBD 2021 Global Sepsis Collaborators, Lancet Global Health 2025'},
+      ]},
+      { id:'s1', icon:'🧭', title:'Definiciones y criterios diagnósticos', items:[
+        {tag:'green', name:'Sepsis-3 (adultos) — sin reemplazo formal', desc:'Sigue vigente (Singer M et al., JAMA 2016). No hubo "Sepsis-4". Persisten críticas: foco en adultos, evidencia mayormente EE.UU./Europa, dificultad de comparación histórica con Sepsis-1/2.', cite:'Singer M et al., JAMA 2016 (vigente)'},
+        {tag:'yellow', name:'qSOFA vs. NEWS2 para cribado', desc:'Múltiples estudios 2022-2024: NEWS2 supera a qSOFA en sensibilidad para detectar sepsis con disfunción orgánica (sensibilidad ~86% vs. 34% en un estudio; AUC 0.70-0.80 vs. 0.62-0.70). qSOFA es más simple pero menos sensible.', cite:'Múltiples cohortes 2022-2024'},
+        {tag:'green', name:'Guía alemana S3 "Sepsis" — actualización 2025', desc:'29 recomendaciones nuevas, 16 revisadas, 43 sin cambios respecto a la versión previa. Relevante como referencia europea complementaria a SSC.', cite:'S3 Guideline, publicada 25/07/2025 (PMC)'},
+        {tag:'red', name:'Phoenix Sepsis Criteria (pediatría)', desc:'Score de disfunción orgánica (respiratoria, cardiovascular, coagulación, neurológica). Sepsis pediátrica = infección + Phoenix ≥2; shock séptico = sepsis + disfunción cardiovascular. Supera a IPSCC 2005 en discriminación de mortalidad. Validaciones externas 2024-2025 confirman en general el mejor desempeño, con dudas sobre aplicabilidad en contextos de bajos recursos.', cite:'Schlapbach LJ et al., JAMA 2024;331(8):675-686'},
+      ]},
+      { id:'s2', icon:'📋', title:'Guías de manejo', items:[
+        {tag:'red', name:'Surviving Sepsis Campaign 2026 (adultos)', desc:'Reemplaza SSC 2021. 129 declaraciones, 46 completamente nuevas. Según fuentes secundarias (texto original bloqueado): optimización PK/PD de antimicrobianos, PAM diferenciada por edad, de-resuscitation explícita post-reanimación, HFNC como soporte inicial preferido, awake proning, continuidad de cuidados post-alta, programas de calidad/"código sepsis".', cite:'SCCM/ESICM, Intensive Care Medicine / Critical Care Medicine 2026 — verificar texto primario'},
+        {tag:'red', name:'Surviving Sepsis Campaign Pediátrica 2026', desc:'61 declaraciones (5 fuertes, 24 condicionales, 10 buenas prácticas). Respecto a 2020: 20 nuevas, 13 actualizadas, 6 revisadas sin cambio, 22 mantenidas. Incorpora formalmente Phoenix Criteria.', cite:'Intensive Care Medicine / Pediatric Critical Care Medicine, marzo 2026'},
+        {tag:'yellow', name:'Hour-1 Bundle — debate sobre la ventana de 1 hora', desc:'Ensayo <strong>1-BED</strong> (Intensive Care Medicine 2024, 23 servicios, 872 pacientes): implementar el bundle de 1h no redujo significativamente mortalidad. Metaanálisis 2024 muestra beneficio consistente de antibióticos a 3-6h pero no tan claro a 1h. Contraargumento: estudio japonés 2022 sí mostró beneficio (18.0% vs 30.3% mortalidad). Mensaje: antibióticos precoces son innegociables en shock séptico franco, pero la métrica rígida de 1h puede generar sobretratamiento en sepsis sin shock con diagnóstico incierto.', cite:'1-BED Trial, Intensive Care Medicine 2024;50(7):1086-1095'},
+      ]},
+      { id:'s3', icon:'💧', title:'Reanimación con fluidos', items:[
+        {tag:'green', name:'CLASSIC', desc:'1554 pacientes en shock séptico, fluidos restrictivos vs. estándar. Mortalidad a 90 días: 42.3% vs 42.1% — sin diferencia, sin diferencia en eventos adversos ni IRA.', cite:'Meyhoff/CLASSIC Trial Group, NEJM 2022;386:2459-2470'},
+        {tag:'green', name:'CLOVERS', desc:'1563 pacientes con hipotensión por sepsis, 60 centros EE.UU. Restrictivo (vasopresores precoces) vs. liberal, detenido por futilidad. Mortalidad 14% vs 14.9% — sin diferencia.', cite:'Shapiro NI et al. (PETAL Network), NEJM 2023'},
+        {tag:'green', name:'PLUS', desc:'~5000 pacientes críticos, solución balanceada vs. salina. Sin diferencia en mortalidad ni IRA.', cite:'Finfer S et al. (ANZICS CTG), NEJM 2022'},
+        {tag:'green', name:'BaSICS', desc:'10.520 pacientes, balanceada vs. salina. HR mortalidad 90 días 0.97 (IC95% 0.90-1.05) — sin diferencia significativa.', cite:'Zampieri FG et al., JAMA 2021 (discusión activa post-2022)'},
+        {tag:'yellow', name:'Metaanálisis de datos individuales (PLUS)', desc:'6 ensayos, 34.450 pacientes: RR mortalidad 90 días balanceada vs. salina 0.96 (IC95% 0.91-1.01) — confirma neutralidad global.', cite:'NEJM Evidence 2024'},
+        {tag:'yellow', name:'Metaanálisis en red 2024-2025', desc:'32 ECA, 28.888 pacientes: balanceados superiores a HES de bajo peso molecular y a salina en mortalidad a 90 días — evidencia de red, más débil que head-to-head.', cite:'Frontiers in Medicine / Critical Care 2024-2025'},
+      ]},
+      { id:'s4', icon:'💉', title:'Vasopresores e inotrópicos', items:[
+        {tag:'yellow', name:'Norepinefrina temprana — metaanálisis actualizado', desc:'Menor mortalidad, menor volumen de fluidos a 6h (-502 mL), PAM objetivo más rápida (-1.30h), más días libres de VM (+3.99). Subgrupo lactato ≤3 mmol/L + NE en 1ª hora con señal más consistente. Análisis secuencial de ensayos (TSA) indica que faltan más ECA para confirmar.', cite:'Shi R, Braïk R, Monnet X et al., Critical Care 2025'},
+        {tag:'gray', name:'Vasopresina — sin ensayo fase 3 nuevo', desc:'VASST (2008) y VANISH (2016) siguen siendo la base; metaanálisis de datos individuales (Nagendran M et al., Intensive Care Medicine 2019) sigue vigente: sin beneficio de mortalidad, menor necesidad de TRR.', cite:'Hueco de la literatura 2022-2026'},
+        {tag:'gray', name:'Angiotensina II — solo análisis post-hoc', desc:'ATHOS-3 (2017) sigue siendo el ensayo pivotal. 2022-2025 trajo análisis exploratorios del mismo dataset (subgrupo IRA, dosis bajas, SDRA) pero ningún ECA nuevo controlado con placebo. Uso sigue siendo de rescate en shock vasodilatador refractario.', cite:'Análisis post-hoc ATHOS-3, 2023-2025'},
+        {tag:'red', name:'OPTPRESS — PAM alta es dañina en añosos', desc:'≥65 años, PAM 80-85 vs. 65-70 mmHg: detenido por daño (mortalidad 39.3% vs 28.6%). Refuerza y extiende el mensaje del "65 trial" previo (hipotensión permisiva sin señal de daño).', cite:'OPTPRESS Investigators, Intensive Care Medicine 2025'},
+        {tag:'green', name:'Norepinefrina sigue siendo primera línea', desc:'Revisiones en red 2023-2024 reafirman: NE superior a dopamina en mortalidad y arritmia; NE+dobutamina con menor mortalidad a 28 días que otras combinaciones en algunos análisis. No cambia la práctica establecida.', cite:'Revisiones en red 2023-2024'},
+        {tag:'gray', name:'Selepressina / terlipresina', desc:'Solo protocolos de ensayos en curso, sin resultados de eficacia en mortalidad publicados que se hayan podido confirmar.', cite:'Hueco de la literatura 2022-2026'},
+      ]},
+      { id:'s5', icon:'🧬', title:'Corticoides', items:[
+        {tag:'yellow', name:'Metaanálisis de datos individuales de pacientes', desc:'17 de 24 ensayos elegibles, 7882 pacientes. RR mortalidad 90 días hidrocortisona vs. placebo (todos combinados): 0.93 — no concluyente. Con <strong>hidrocortisona + fludrocortisona</strong>: RR 0.86 (beneficio más claro). Hidrocortisona sola: RR 0.96 (sin beneficio claro). Más días libres de vasopresor con hidrocortisona (+1.24 días).', cite:'Pirracchio R et al., NEJM Evidence 2024 (y 2023)'},
+        {tag:'yellow', name:'Metaanálisis en red bayesiano 2024', desc:'Confirma que fludrocortisona + hidrocortisona ofrece mayor beneficio de supervivencia que hidrocortisona sola.', cite:'PMC11146553, 2024'},
+        {tag:'red', name:'Vitamina C / tiamina / hidrocortisona (protocolo Marik/VICTAS)', desc:'Sin beneficio consistente. Metaanálisis 2022 (6 estudios, 839 pacientes): sin diferencia en mortalidad, IRA ni estancia. Análisis secundario de VICTAS (2023) sobre secuelas cognitivas a 6 meses: sin diferencias. No usar de rutina.', cite:'Metaanálisis 2022; VICTAS follow-up 2023'},
+      ]},
+      { id:'s6', icon:'🩸', title:'Monitoreo de perfusión tisular', items:[
+        {tag:'red', name:'ANDROMEDA-SHOCK-2', desc:'1501 pacientes, shock séptico precoz (&lt;4h). Algoritmo de reanimación personalizado por fenotipo hemodinámico guiado por CRT horario vs. cuidado habitual. Win ratio 1.16 (IC95% 1.02-1.33; p=0.04), impulsado por menor duración de soporte orgánico (mortalidad sin diferencia marcada: 19.1% vs 17.8%). Primer ensayo grande que valida un algoritmo activo guiado por CRT.', cite:'Hernández G et al., JAMA 2025'},
+        {tag:'gray', name:'Otros marcadores de perfusión (ScvO2, gap CO2, etc.)', desc:'Sin ensayos aleatorizados grandes 2022-2026 que cambien la práctica — sigue siendo terreno de estudios observacionales pequeños.', cite:'Hueco parcial de la literatura'},
+      ]},
+      { id:'s7', icon:'💊', title:'Antimicrobianos', items:[
+        {tag:'yellow', name:'Timing de antibióticos (1h vs. 3-6h)', desc:'Ver sección Guías (1-BED trial). El beneficio de antibióticos precoces en shock séptico franco es sólido; la evidencia de que la ventana estricta de 1h cambie mortalidad en sepsis sin shock es débil y contradictoria.', cite:'1-BED Trial 2024; metaanálisis 2024'},
+        {tag:'green', name:'ADAPT-Sepsis — duración guiada por procalcitonina', desc:'2760 pacientes, 41 UCIs Reino Unido. Duración mediana: PCT-guiado 7.8 días vs. estándar 9.0 días. Reducción inicial significativa con PCT (-1.13 días) y PCR (-0.71 días), pero con PCR no se mantuvo hasta el día 28. Protocolo de PCT cumplió no inferioridad en seguridad. Refuerza el rol de la PCT (más que la PCR) para acortar tratamiento de forma segura.', cite:'ADAPT-Sepsis Trial Group, JAMA/PubMed 2024'},
+        {tag:'red', name:'BLING III — infusión continua de betalactámicos', desc:'104 UCIs internacionales, piperacilina-tazobactam o meropenem en infusión continua vs. intermitente. Sin diferencia en mortalidad a 90 días. Templa la expectativa de beneficio de sobrevida de los protocolos de infusión extendida (puede seguir siendo razonable por otros motivos: costo, PK/PD en gérmenes resistentes).', cite:'BLING III Study Group, JAMA 2024'},
+        {tag:'green', name:'De-escalación antibiótica', desc:'Evidencia observacional 2023-2025 (67 hospitales de Michigan, ~37.000 pacientes): desescalar al día 4 tiene mortalidad a 90 días similar a continuar espectro amplio. Apoya desescalar cuando el cultivo lo permite. No se identificó el ECA grande específico que a veces se cita con otro nombre — verificar antes de citar un ensayo puntual.', cite:'Estudio observacional multicéntrico, Michigan 2023-2025'},
+      ]},
+      { id:'s8', icon:'🔬', title:'Biomarcadores y medicina de precisión', items:[
+        {tag:'gray', name:'Endotipos transcriptómicos (MARS, 3 endotipos)', desc:'Sistema MARS (4 endotipos: Mars1-4) y marco de 3 endotipos (Inflammopathic, Adaptive, Coagulopathic) validados en cohortes. Análisis post-hoc de SAVE-MORE (anakinra en COVID-19) como ejemplo de endotipado dinámico. Sigue sin test clínico rutinario en 2026 — terreno de investigación traslacional.', cite:'Consorcio MARS; SAVE-MORE post-hoc'},
+        {tag:'gray', name:'Inmunoterapia personalizada (PROVIDE, ImmunoSep, SepTIC)', desc:'PROVIDE (Cell Reports Medicine 2022): estratificación por ferritina/HLA-DR, anakinra con efecto positivo en MALS sin traducción en mortalidad a 28 días. ImmunoSep (2025): mismo esquema de estratificación, resultado numérico no confirmado con certeza. SepTIC (GM-CSF en linfopenia): en curso, sin resultados finales.', cite:'Cell Reports Medicine 2022; ImmunoSep 2025 (verificar); SepTIC en curso'},
+        {tag:'yellow', name:'HLA-DR monocitario (mHLA-DR)', desc:'Consolidado como el biomarcador de inmunosupresión más "accionable". Cohorte real-world de 20 años y 1023 casos (2025) lo confirma como biomarcador de enriquecimiento robusto.', cite:'Cohorte 2025 (20 años de seguimiento)'},
+        {tag:'yellow', name:'Presepsina', desc:'Niveles &gt;946 ng/L asociados a sepsis por gramnegativos; sensibilidad 73%/especificidad 80% para mortalidad en un metaanálisis. Sin uso clínico rutinario amplio.', cite:'Metaanálisis 2024-2025 (PMC/Frontiers)'},
+        {tag:'gray', name:'Adrenomedulina bioactiva (bio-ADM)', desc:'AdrenOSS-2 (fase II, 301 pacientes): enibarcimab (anti-ADM) en shock séptico precoz enriquecido por bio-ADM. Bio-ADM ≥37 pg/mL predice shock a 14 días; ≥136 pg/mL predice mortalidad a 90-180 días. Enibarcimab no está aprobado ni disponible clínicamente — investigación en fase II.', cite:'AdrenOSS-2; post-hoc HYPRESS 2025'},
+        {tag:'yellow', name:'Secuenciación metagenómica (mNGS)', desc:'Identifica el patógeno causal en ~65.7% de sepsis sospechada vs. ~12.1% con hemocultivos estándar, respuesta &lt;24h. Adopción clínica todavía muy limitada por costo y complejidad.', cite:'Cohortes multicéntricas 2022-2025'},
+      ]},
+      { id:'s9', icon:'🤖', title:'Inteligencia artificial / predicción', items:[
+        {tag:'red', name:'Epic Sepsis Model — desempeño pobre confirmado', desc:'Validaciones externas 2023-2024: sensibilidad de solo 14.7% a 6h, VPP 7.6%. Epic lanzó silenciosamente la v2 en diciembre 2023, sin validación externa multicéntrica publicada encontrada. Motivo de cautela con productos comerciales "caja negra" sin validación local.', cite:'Wong A et al., JAMA Internal Medicine 2021; validaciones 2023-2024'},
+        {tag:'green', name:'TREWS (Johns Hopkins)', desc:'590.736 pacientes monitorizados, 5 hospitales. Confirmación del alerta dentro de 3h asociada a menor mortalidad intrahospitalaria (-3.3 puntos porcentuales). Cifras de prensa institucional posteriores (detección 2h más temprana, -10% uso de UCI) deben tomarse con cautela adicional.', cite:'Adams R et al., Nature Medicine 2022'},
+        {tag:'yellow', name:'Sepsis Watch (Duke)', desc:'Duplicó cumplimiento del bundle SEP-1 a 3h, redujo tiempo a antibióticos en 1.2h. Reducción de mortalidad del 12% reportada institucionalmente, no verificada en paper peer-reviewed independiente con el mismo detalle que TREWS.', cite:'Duke Institute for Health Innovation'},
+        {tag:'green', name:'NAVOY Sepsis', desc:'304 pacientes, Malmö. Predijo sepsis (Sepsis-3) 3h antes del inicio: exactitud 0.79, sensibilidad 0.80, especificidad 0.78. Una de las validaciones aleatorizadas prospectivas más rigurosas del período.', cite:'Journal of Critical Care, abril 2024'},
+        {tag:'gray', name:'Modelos basados en LLM (COMPOSER-LLM y similares)', desc:'UCSD Health: sensibilidad 72.1%, VPP 52.9%, muy baja tasa de falsas alarmas. Terreno de investigación activa, sin despliegue clínico estándar todavía.', cite:'UCSD Health, 2024-2025'},
+      ]},
+      { id:'s10', icon:'🧒', title:'Sepsis pediátrica y neonatal', items:[
+        {tag:'red', name:'Phoenix Criteria y SSC Pediátrica 2026', desc:'Ver secciones Definiciones y Guías. Es el cambio más relevante si el servicio atiende también UTIP/neonatología.', cite:'Ver secciones s1 y s2'},
+        {tag:'yellow', name:'Duración de antibióticos en sepsis neonatal', desc:'Cochrane Review 2024 evalúa seguridad/eficacia de acortar tratamiento en sepsis neonatal con cultivo positivo.', cite:'Cochrane Review 2024'},
+        {tag:'gray', name:'NeoSep1 (fosfomicina/flomoxef en neonatos)', desc:'Ensayo de farmacocinética iniciado en 2023 (Kenia, Sudáfrica). Sin resultados finales confirmados.', cite:'GARDP, en curso'},
+        {tag:'gray', name:'Carga global neonatal', desc:'Se citan 214.000 muertes neonatales anuales por patógenos resistentes — cifra de fuente secundaria, no verificada contra el estudio primario.', cite:'Cita secundaria, verificar fuente primaria'},
+      ]},
+      { id:'s11', icon:'🩹', title:'Supervivencia y secuelas (PICS)', items:[
+        {tag:'gray', name:'PICS — sin terapia dirigida aprobada', desc:'Sin tratamientos autorizados específicos. Líneas de investigación 2024: disfunción linfocitaria, hormonas tiroideas como biomarcador, firmas inmunes de megacariocitos como blanco potencial. Manejo sigue siendo de soporte.', cite:'Revisiones 2023-2024'},
+        {tag:'green', name:'Seguimiento post-sepsis', desc:'Revisión sistemática 2024-2025: intervenciones de rehabilitación asociadas a beneficio de supervivencia a largo plazo (hasta 10 años); coordinación de cuidados post-alta redujo rehospitalización y mortalidad hasta 12 meses. Refuerza la recomendación SSC de evaluar función física, cognitiva y salud mental post-alta.', cite:'Critical Care, revisión 2024-2025'},
+      ]},
+      { id:'s12', icon:'🌍', title:'Epidemiología global', items:[
+        {tag:'red', name:'GBD 2021 — reversión de la tendencia', desc:'166 millones de casos y 21.4 millones de muertes por sepsis en 2021 (~1/3 de todas las muertes globales). La mejora sostenida desde los 90 se revirtió en 2020-2021, atribuido a COVID-19. Adultos ≥70 años concentran &gt;9 millones de muertes anuales. Acceso al texto completo bloqueado — cifras vía Global Sepsis Alliance, verificar contra el paper original.', cite:'GBD 2021 Global Sepsis Collaborators, Lancet Global Health, oct. 2025'},
+        {tag:'green', name:'Global Sepsis Agenda 2030', desc:'Meta: reducir incidencia global ≥25% y mejorar supervivencia &gt;20% para 2030. Cifras citadas por Global Sepsis Alliance (47-50M casos/año, ≥11M muertes/año) difieren algo de las del GBD 2021 — inconsistencia entre fuentes a resolver con el paper primario.', cite:'Global Sepsis Alliance / OMS, 2024'},
+        {tag:'gray', name:'SATISEPSIS (Argentina)', desc:'Mencionado en fuentes secundarias sobre epidemiología de sepsis/shock séptico en Argentina. No se pudo acceder al artículo primario ni confirmar año o cifras exactas — se recomienda contactar al Comité de Shock y Sepsis de SATI (sati.org.ar).', cite:'Hueco — verificar con SATI'},
+      ]},
+      { id:'s13', icon:'🧪', title:'Otros ensayos relevantes', items:[
+        {tag:'yellow', name:'CytoSorb / hemoadsorción', desc:'Metaanálisis 2024-2025 (9 estudios, 744 pacientes, 1 ECA + 8 observacionales): asociación con menor mortalidad (OR 0.64), pero evidencia predominantemente observacional. ECA específico para shock vasopléjico en curso (estimado 2027).', cite:'Metaanálisis 2024-2025'},
+        {tag:'yellow', name:'Fluid de-resuscitation', desc:'Línea de evidencia (incl. RADAR-2) sobre desresucitación activa con diuréticos/ultrafiltración, sustenta la nueva recomendación SSC 2026 de remoción de fluidos tras la reanimación inicial.', cite:'RADAR-2 y líneas relacionadas'},
+        {tag:'gray', name:'Control de foco — ensayo COOL discontinuado', desc:'Ensayo sobre abdomen abierto vs. cerrado en sepsis intraabdominal complicada sufrió retiro de patrocinador (3M) en agosto 2022 — sin resultados por motivo administrativo, no científico. Evidencia observacional 2022 sigue reforzando que la demora en el control de foco aumenta mortalidad a 90 días.', cite:'COOL Trial (discontinuado 2022); JAMA Surgery 2022'},
+      ]},
+    ];
+
+    const GAPS = [
+      'Vasopresina: ningún ensayo fase 3 nuevo desde VANISH/VASST.',
+      'Angiotensina II: ningún ECA controlado con placebo nuevo desde ATHOS-3 (2017).',
+      'Selepressina y terlipresina en shock séptico: solo protocolos en curso, sin resultados confirmados.',
+      'Epic Sepsis Model v2 (desplegado en dic. 2023): sin validación externa multicéntrica publicada encontrada.',
+      '"DIANA trial" de desescalación antibiótica (Lancet ID 2023): no se pudo localizar con ese nombre exacto — verificar nomenclatura antes de citarlo.',
+      'SATISEPSIS (Argentina): mencionado en fuentes secundarias, sin acceso al artículo primario — contactar a SATI directamente.',
+      'Redacción textual completa de las guías SSC 2026 (adulto y pediátrica): acceso bloqueado (403) en SCCM/ESICM/Springer — conseguir el PDF original antes de citar recomendaciones textuales.',
+      'Marcadores de perfusión distintos de lactato/CRT (ScvO2, gap veno-arterial de CO2): sin ensayos grandes nuevos que cambien la práctica.',
+      'Fenotipos transcriptómicos (MARS, 3 endotipos): investigación activa, sin test comercial de uso clínico rutinario.',
+      'Cifras de mortalidad/incidencia global: discrepancia entre GBD 2021 (166M casos/21.4M muertes) y Global Sepsis Alliance (47-50M casos/≥11M muertes) — homogeneizar con el paper primario.',
+    ];
+
+    const wrap = document.getElementById('sections');
+    wrap.innerHTML = SECTIONS.map(sec => `
+      <div class="section${sec.key ? ' key' : ''}" id="${sec.id}">
+        <button class="sec-toggle" onclick="toggleSection('${sec.id}')">
+          <span class="sec-title"><span class="sec-icon">${sec.icon}</span>${sec.title}</span>
+          <span style="display:flex;align-items:center;gap:8px;">
+            <span class="sec-count">${sec.items.length}</span>
+            <span class="sec-arrow${sec.open ? ' open' : ''}" id="arrow-${sec.id}">▼</span>
+          </span>
+        </button>
+        <div class="sec-body${sec.open ? ' open' : ''}" id="body-${sec.id}">
+          ${sec.items.map(it => `
+            <div class="study-card">
+              <div class="study-head">
+                <span class="tag ${it.tag}">${it.tag === 'green' ? 'Sin cambio' : it.tag === 'yellow' ? 'Evolucionando' : it.tag === 'red' ? 'Cambia práctica' : 'Hueco'}</span>
+                <span class="study-name">${it.name}</span>
+              </div>
+              <p class="study-desc">${it.desc}</p>
+              <p class="study-cite">${it.cite}</p>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('') + `
+      <div class="section" id="gaps">
+        <button class="sec-toggle" onclick="toggleSection('gaps-inner')">
+          <span class="sec-title"><span class="sec-icon">⚠️</span>Huecos de la búsqueda</span>
+          <span style="display:flex;align-items:center;gap:8px;">
+            <span class="sec-count">${GAPS.length}</span>
+            <span class="sec-arrow" id="arrow-gaps-inner">▼</span>
+          </span>
+        </button>
+        <div class="sec-body" id="body-gaps-inner">
+          <ul class="gaps-list">
+            ${GAPS.map(g => `<li>${g}</li>`).join('')}
+          </ul>
+        </div>
+      </div>
+    `;
+
+    function toggleSection(id){
+      const body = document.getElementById('body-'+id);
+      const arrow = document.getElementById('arrow-'+id);
+      body.classList.toggle('open');
+      arrow.classList.toggle('open');
+    }
+
+    (function(){
+      const svg=document.querySelector('.ecg-bg');
+      const W=window.innerWidth,H=window.innerHeight;
+      svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+      const BW=240,n=Math.ceil(W/BW)+2;
+      function line(y,s,o,w){
+        let d=`M${-BW},${y}`;
+        for(let i=0;i<n;i++){const x=i*BW-BW;
+          d+=` H${x+28} L${x+31},${y-3} L${x+36},${y-4} L${x+40},${y} H${x+56} L${x+59},${y+4} L${x+63},${y-38} L${x+68},${y+12} L${x+72},${y} H${x+78} L${x+83},${y-2} L${x+96},${y-9} L${x+110},${y} H${x+BW}`;}
+        return `<path d="${d}" stroke="${s}" stroke-width="${w}" fill="none" opacity="${o}" stroke-linecap="round" stroke-linejoin="round"/>`;
+      }
+      svg.innerHTML=[line(H*.22,'#e05555',0.35,1.5),line(H*.52,'#e05555',0.18,1.2),line(H*.76,'#378ADD',0.12,1.2)].join('');
+    })();
+  </script>
+</body>
+</html>
