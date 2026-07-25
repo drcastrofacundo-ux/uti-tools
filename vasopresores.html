@@ -113,6 +113,33 @@
     .res-item.primary .res-lbl { color: rgba(255,255,255,0.78); }
     .res-item.primary .res-val { font-size: 1.45rem; }
     .res-item.reference { grid-column: 1 / -1; background: rgba(255,255,255,0.018); }
+    .ne-orientation { grid-column: 1 / -1; border: 1px solid rgba(74,108,247,0.42); border-radius: 10px; padding: 11px; background: linear-gradient(135deg,rgba(74,108,247,0.11),rgba(15,23,41,0.72)); }
+    .ne-orientation-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+    .ne-orientation-title { font-size: 0.8rem; font-weight: 800; color: var(--text); }
+    .ne-orientation-date { font-size: 0.59rem; color: var(--muted); white-space: nowrap; }
+    .ne-reading-current { padding: 8px 9px; margin-bottom: 8px; border-radius: 7px; background: rgba(74,108,247,0.13); color: rgba(255,255,255,0.87); font-size: 0.74rem; line-height: 1.45; }
+    .ne-scale-label { margin-bottom: 6px; color: var(--sub); font-size: 0.65rem; font-weight: 700; }
+    .ne-scale-track { height: 11px; position: relative; border-radius: 999px; background: linear-gradient(90deg,rgba(74,108,247,0.12),rgba(74,108,247,0.52)); border: 1px solid rgba(145,168,255,0.35); }
+    .ne-scale-marker { display: none; width: 3px; height: 19px; position: absolute; top: 50%; left: 0; transform: translate(-50%,-50%); border-radius: 2px; background: #fff; box-shadow: 0 0 0 2px rgba(74,108,247,0.7),0 0 8px rgba(255,255,255,0.5); }
+    .ne-scale-marker.visible { display: block; }
+    .ne-scale-ticks { display: grid; grid-template-columns: repeat(7,1fr); margin-top: 5px; color: var(--muted); font-size: 0.58rem; font-variant-numeric: tabular-nums; }
+    .ne-scale-ticks span { text-align: center; }
+    .ne-scale-ticks span:first-child { text-align: left; }
+    .ne-scale-ticks span:last-child { text-align: right; }
+    .ne-orientation-note { margin-top: 7px; color: var(--muted); font-size: 0.64rem; line-height: 1.45; }
+    .ne-orientation-note strong { color: var(--sub); }
+    .ne-orientation-note a { color: #91a8ff; }
+    .sofa2-assistant { grid-column: 1 / -1; padding: 11px; border-radius: 10px; border: 1px solid rgba(92,211,154,0.35); background: rgba(92,211,154,0.06); }
+    .sofa2-title { font-size: 0.8rem; font-weight: 800; color: var(--text); }
+    .sofa2-rule { margin-top: 4px; color: var(--sub); font-size: 0.68rem; line-height: 1.42; }
+    .sofa2-output { display: grid; grid-template-columns: 1fr 0.72fr; gap: 8px; margin-top: 9px; }
+    .sofa2-output-item { padding: 9px; border-radius: 8px; background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.08); text-align: center; }
+    .sofa2-output-value { display: block; color: rgba(255,255,255,0.24); font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .sofa2-output-value.has-val { color: var(--text); }
+    .sofa2-stratum { margin-top: 8px; color: var(--sub); font-size: 0.7rem; line-height: 1.42; }
+    .sofa2-obesity { display: none; margin-top: 8px; padding: 8px 9px; border-radius: 7px; background: var(--ya); border: 1px solid var(--yb); color: #f6c86b; font-size: 0.68rem; line-height: 1.42; }
+    .sofa2-obesity.visible { display: block; }
+    .sofa2-link { display: inline-block; margin-top: 9px; color: #91a8ff; font-size: 0.68rem; font-weight: 700; text-decoration: none; }
 
     .denominator-box { margin-top: 10px; padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.09); background: rgba(255,255,255,0.025); }
     .denominator-title { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.55px; color: var(--sub); }
@@ -196,8 +223,31 @@
         <div class="inp-group full"><label>Velocidad bomba (mL/h)</label><input type="number" id="ne-vel" placeholder="ej. 8" inputmode="decimal" min="0" oninput="calc('ne')"></div>
         <div class="results-grid ne-results">
           <div class="res-item primary"><div class="res-lbl">Dosis absoluta de bomba</div><span class="res-val" id="ne-abs">—</span><div class="res-unit">µg/min</div></div>
+          <section class="ne-orientation" aria-labelledby="ne-orientation-title">
+            <div class="ne-orientation-head">
+              <div class="ne-orientation-title" id="ne-orientation-title">Referencia en µg/min</div>
+              <div class="ne-orientation-date">Evidencia revisada: 2026</div>
+            </div>
+            <div class="ne-reading-current" id="ne-reading-current" role="status">Ingresá la preparación y la velocidad de bomba para ubicar la exposición.</div>
+            <div class="ne-scale-label">Escala descriptiva continua · µg/min</div>
+            <div class="ne-scale-track" aria-hidden="true"><span class="ne-scale-marker" id="ne-scale-marker"></span></div>
+            <div class="ne-scale-ticks" aria-hidden="true"><span>0</span><span>10</span><span>20</span><span>30</span><span>40</span><span>50</span><span>60+</span></div>
+            <div class="ne-orientation-note"><strong>A mayor µg/min, mayor exposición absoluta.</strong> Interpretar con tendencia, perfusión y fenotipo hemodinámico. En IMC ≥30, priorizar esta lectura junto a esos datos y no la gamma aislada.<br>En una cohorte de inicio de vasopresina, cada +10 µg/min de dosis equivalente de noradrenalina se asoció con 20,7% mayores odds de mortalidad hasta 60 µg/min. Es una asociación no causal: 10 y 60 no son cortes, metas ni dosis máximas. Fuente: Sacha et al., <em>Crit Care Med</em> 2022; PMID 34582425 · <a href="https://pubmed.ncbi.nlm.nih.gov/34582425/" target="_blank" rel="noreferrer">estudio observacional</a>.</div>
+          </section>
           <div class="res-item"><div class="res-lbl">Concentración</div><span class="res-val" id="ne-conc">—</span><div class="res-unit">µg/mL</div></div>
           <div class="res-item"><div class="res-lbl">Por peso real</div><span class="res-val" id="ne-gamas">—</span><div class="res-unit">µg/kg/min (peso real)</div></div>
+          <section class="sofa2-assistant" aria-labelledby="sofa2-title">
+            <div class="sofa2-title" id="sofa2-title">Equivalencia SOFA-2 cardiovascular</div>
+            <div class="sofa2-rule"><strong>SOFA-2 se define en µg/kg/min; la dosis absoluta no se traduce a puntos sin peso.</strong> Esta equivalencia usa sólo noradrenalina y peso real; si hay adrenalina, otros vasoactivos/inotrópicos o soporte mecánico, completar el selector cardiovascular.</div>
+            <div class="sofa2-output">
+              <div class="sofa2-output-item"><div class="res-lbl">Gamma por peso real</div><span class="sofa2-output-value" id="sofa2-gamma">—</span><div class="res-unit">µg/kg/min</div></div>
+              <div class="sofa2-output-item"><div class="res-lbl">SOFA-2 CV</div><span class="sofa2-output-value" id="sofa2-points">—</span><div class="res-unit">puntos</div></div>
+            </div>
+            <div class="sofa2-stratum" id="sofa2-stratum">Ingresá dosis de bomba y peso real válidos.</div>
+            <div class="sofa2-obesity" id="sofa2-obesity">IMC ≥30: SOFA-2 conserva su definición por kg de peso real. La dosis absoluta en µg/min y el IMC contextualizan la exposición, pero no cambian automáticamente el puntaje ni autorizan usar peso ideal/ajustado.</div>
+            <a class="sofa2-link" href="sofa2.html#cardiovascular">Abrir SOFA-2 completo →</a>
+            <div class="ne-orientation-note">Definición: Ranzani et al., <em>JAMA</em> 2025; DOI 10.1001/jama.2025.20516.</div>
+          </section>
           <div class="res-item reference"><div class="res-lbl">Por peso ideal* · referencia opcional</div><span class="res-val" id="ne-gamas-ideal">—</span><div class="res-unit">µg/kg/min (peso ideal estimado; no validado para noradrenalina)</div></div>
         </div>
         <div class="denominator-box">
@@ -326,7 +376,7 @@
 
     let vasoDose = null;
 
-    const { LIMITS, calculateBmi, calculateReferenceWeight, calculateInfusionDose, normalizeDose } = window.VasopressorCalculations;
+    const { LIMITS, calculateBmi, calculateReferenceWeight, calculateInfusionDose, normalizeDose, getNorepinephrineAbsoluteScale, getSofa2CardiovascularFromNorepinephrine } = window.VasopressorCalculations;
 
     function parseNumber(id){
       const value=parseFloat(document.getElementById(id).value);
@@ -380,7 +430,7 @@
 
       if(!amp||!vol||amp<=0||vol<=0){
         setVal(`${drug}-conc`,null); setVal(`${drug}-abs`,null); setVal(`${drug}-gamas`,null);
-        if(drug==='ne'){ setVal('ne-gamas-ideal',null); updateNEContext(null,anthro.bmi,null); }
+        if(drug==='ne'){ setVal('ne-gamas-ideal',null); updateNEContext(null,anthro.bmi,null); updateNEAbsoluteReading(null,anthro.bmi); updateSofa2Assistant(null,peso,anthro.bmi); }
         if(drug==='dobu'||drug==='adre') updateAlert(drug,null);
         return;
       }
@@ -391,7 +441,7 @@
 
       if(!vel||vel<=0){
         setVal(`${drug}-abs`,null); setVal(`${drug}-gamas`,null);
-        if(drug==='ne'){ setVal('ne-gamas-ideal',null); updateNEContext(null,anthro.bmi,null); }
+        if(drug==='ne'){ setVal('ne-gamas-ideal',null); updateNEContext(null,anthro.bmi,null); updateNEAbsoluteReading(null,anthro.bmi); updateSofa2Assistant(null,peso,anthro.bmi); }
         if(drug==='dobu'||drug==='adre') updateAlert(drug,null);
         return;
       }
@@ -409,6 +459,8 @@
           const idealDose=normalizeDose(dosisAbs,anthro.ideal);
           setVal('ne-gamas-ideal',idealDose===null?null:(idealDose<0.1?idealDose.toFixed(4):idealDose.toFixed(3)));
           updateNEContext(gamas,anthro.bmi,idealDose);
+          updateNEAbsoluteReading(dosisAbs,anthro.bmi);
+          updateSofa2Assistant(dosisAbs,peso,anthro.bmi);
         }
         if(drug==='dobu') updateAlert('dobu',gamas);
         if(drug==='adre') updateAlert('adre',gamas);
@@ -416,7 +468,7 @@
         setVal(`${drug}-gamas`,null);
         const el=document.getElementById(`${drug}-gamas`);
         el.textContent='Peso?'; el.className='res-val';
-        if(drug==='ne'){ setVal('ne-gamas-ideal',null); updateNEContext(null,anthro.bmi,null); }
+        if(drug==='ne'){ setVal('ne-gamas-ideal',null); updateNEContext(null,anthro.bmi,null); updateNEAbsoluteReading(dosisAbs,anthro.bmi); updateSofa2Assistant(dosisAbs,peso,anthro.bmi); }
         if(drug==='dobu') updateAlert('dobu',null);
         if(drug==='adre') updateAlert('adre',null);
       }
@@ -447,6 +499,44 @@
       }
 
       contextEl.innerHTML='<strong>IMC <30:</strong> se muestran dosis absoluta y normalizada. Ninguna cifra aislada reemplaza la respuesta hemodinámica, la perfusión ni el protocolo institucional.';
+    }
+
+    function updateNEAbsoluteReading(absoluteDose,bmi){
+      const current=document.getElementById('ne-reading-current');
+      const marker=document.getElementById('ne-scale-marker');
+      const reading=getNorepinephrineAbsoluteScale(absoluteDose);
+
+      marker.classList.remove('visible');
+      if(reading===null){
+        current.textContent='Ingresá la preparación y la velocidad de bomba para ubicar la exposición.';
+        return;
+      }
+
+      marker.style.left=`${reading.positionPercent}%`;
+      marker.classList.add('visible');
+      const obesityNote=bmi!==null&&bmi>=30?' Con IMC ≥30, esta lectura absoluta debe tener prioridad sobre la gamma aislada.':'';
+      const rangeNote=reading.beyondObservedRange?' Supera el tramo 0–60 µg/min representado; esto no crea una categoría clínica.':'';
+      current.textContent=`Lectura actual: ${fmt(absoluteDose,2)} µg/min. A mayor µg/min, mayor exposición absoluta; revisar tendencia y perfusión. No hay cortes validados de dosis baja/alta ni gatillos terapéuticos.${rangeNote}${obesityNote}`;
+    }
+
+    function updateSofa2Assistant(absoluteDose,actualWeight,bmi){
+      const gammaEl=document.getElementById('sofa2-gamma');
+      const pointsEl=document.getElementById('sofa2-points');
+      const stratumEl=document.getElementById('sofa2-stratum');
+      const obesityEl=document.getElementById('sofa2-obesity');
+      const result=getSofa2CardiovascularFromNorepinephrine(absoluteDose,actualWeight);
+
+      obesityEl.classList.toggle('visible',bmi!==null&&bmi>=30);
+      if(result===null){
+        gammaEl.textContent='—'; gammaEl.className='sofa2-output-value';
+        pointsEl.textContent='—'; pointsEl.className='sofa2-output-value';
+        stratumEl.textContent='Ingresá dosis de bomba y peso real válidos. SOFA-2 no puede derivarse de µg/min sin peso.';
+        return;
+      }
+
+      gammaEl.textContent=result.doseMcgKgMin.toFixed(3); gammaEl.className='sofa2-output-value has-val';
+      pointsEl.textContent=result.points; pointsEl.className='sofa2-output-value has-val';
+      stratumEl.textContent=`${fmt(absoluteDose,2)} µg/min ÷ ${fmt(actualWeight,1)} kg reales = ${result.doseMcgKgMin.toFixed(3)} µg/kg/min → SOFA-2 cardiovascular ${result.points} (${result.stratum}).`;
     }
 
     function fmtDose(value){ return value<0.1?value.toFixed(4):value.toFixed(3); }
