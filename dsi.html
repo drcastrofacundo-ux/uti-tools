@@ -3,214 +3,186 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DSI — UTI Tools</title>
+  <title>DSI serial — UTI Tools</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
       --bg:#0a0f1e; --surface:rgba(255,255,255,0.04); --surface-hover:rgba(255,255,255,0.08);
-      --border:rgba(255,255,255,0.10); --text:#fff; --sub:rgba(255,255,255,0.55); --muted:rgba(255,255,255,0.35);
-      --input-bg:#0f1729; --accent:#4a6cf7;
-      --green:#1D9E75; --ga:rgba(29,158,117,0.15); --gb:rgba(29,158,117,0.30);
-      --yellow:#EF9F27; --ya:rgba(239,159,39,0.15); --yb:rgba(239,159,39,0.30);
-      --red:#e05555; --ra:rgba(224,85,85,0.15); --rb:rgba(224,85,85,0.30);
+      --border:rgba(255,255,255,0.10); --text:#fff; --sub:rgba(255,255,255,0.62); --muted:rgba(255,255,255,0.38);
+      --input-bg:#0f1729; --accent:#4a6cf7; --accent-soft:rgba(74,108,247,0.13);
+      --yellow:#EF9F27; --ya:rgba(239,159,39,0.13); --yb:rgba(239,159,39,0.30);
     }
     body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-height: 100vh; }
     .ecg-bg { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 0; overflow: visible; }
-    .page { position: relative; z-index: 1; max-width: 440px; margin: 0 auto; padding: 28px 18px 60px; }
-
-    .back-btn {
-      display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 600;
-      color: var(--sub); text-decoration: none; background: var(--surface); border: 1px solid var(--border);
-      padding: 6px 12px; border-radius: 8px; transition: background 0.2s, color 0.2s; margin-bottom: 22px;
-    }
+    .page { position: relative; z-index: 1; max-width: 460px; margin: 0 auto; padding: 28px 18px 60px; }
+    .back-btn { display: inline-flex; align-items: center; font-size: 0.78rem; font-weight: 600; color: var(--sub); text-decoration: none; background: var(--surface); border: 1px solid var(--border); padding: 6px 12px; border-radius: 8px; margin-bottom: 22px; }
     .back-btn:hover { background: var(--surface-hover); color: var(--text); }
+    .header { margin-bottom: 20px; }
+    h1 { font-size: 1.48rem; font-weight: 800; letter-spacing: -0.5px; }
+    .header p { font-size: 0.78rem; color: var(--muted); margin-top: 5px; line-height: 1.45; }
 
-    .header { margin-bottom: 26px; }
-    h1 { font-size: 1.55rem; font-weight: 800; letter-spacing: -0.5px; }
-    .header p { font-size: 0.8rem; color: var(--muted); margin-top: 5px; }
-
-    label {
-      display: block; font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.7px; color: var(--sub); margin-bottom: 7px;
-    }
-    .field { margin-bottom: 16px; }
-    input[type="number"] {
-      width: 100%; padding: 13px 14px; font-size: 1.2rem; font-weight: 600;
-      color: var(--text); background: var(--input-bg); border: 1px solid var(--border);
-      border-radius: 8px; outline: none; transition: border-color 0.2s, background 0.2s;
-      -webkit-appearance: none; appearance: none;
-    }
-    input:focus { border-color: rgba(255,255,255,0.3); background: #131e38; }
+    .formula-note { padding: 9px 12px; margin-bottom: 12px; border-radius: 8px; background: var(--accent-soft); border: 1px solid rgba(74,108,247,0.28); color: var(--sub); font-size: 0.72rem; line-height: 1.45; text-align: center; }
+    .time-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .time-card { padding: 12px; border-radius: 11px; background: rgba(15,23,41,0.88); border: 1px solid var(--border); }
+    .time-title { font-size: 0.82rem; font-weight: 800; margin-bottom: 3px; }
+    .time-sub { color: var(--muted); font-size: 0.63rem; margin-bottom: 11px; }
+    .field { margin-bottom: 10px; }
+    label { display: block; font-size: 0.63rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.55px; color: var(--sub); margin-bottom: 5px; }
+    .input-unit { display: flex; align-items: center; gap: 6px; }
+    input[type="number"] { width: 100%; min-width: 0; padding: 10px; font-size: 1rem; font-weight: 700; color: var(--text); background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px; outline: none; -webkit-appearance: none; appearance: none; }
+    input:focus { border-color: rgba(255,255,255,0.32); background: #131e38; }
     input::placeholder { color: rgba(255,255,255,0.18); font-weight: 400; }
+    .unit { color: var(--muted); font-size: 0.65rem; white-space: nowrap; }
+    .point-result { margin-top: 6px; padding: 9px; text-align: center; border-radius: 8px; background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.07); }
+    .point-result-label { color: var(--muted); font-size: 0.58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .point-result-value { display: block; margin-top: 4px; color: rgba(255,255,255,0.22); font-size: 1.38rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .point-result-value.has-val { color: var(--text); }
+    .validation { min-height: 16px; margin-top: 7px; color: var(--yellow); font-size: 0.61rem; line-height: 1.35; }
 
-    .formula-note { text-align: center; font-size: 0.8rem; color: var(--muted); margin: 14px 0 20px; font-style: italic; }
+    .trend-card { margin-top: 12px; padding: 14px; border-radius: 12px; background: var(--surface); border: 1px solid rgba(74,108,247,0.38); }
+    .trend-title { font-size: 0.82rem; font-weight: 800; }
+    .trend-sub { margin-top: 3px; color: var(--muted); font-size: 0.65rem; }
+    .timeline { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; margin: 12px 0; }
+    .timeline-point { padding: 9px 7px; border-radius: 8px; text-align: center; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); }
+    .timeline-label { display: block; color: var(--muted); font-size: 0.58rem; font-weight: 700; text-transform: uppercase; }
+    .timeline-value { display: block; margin-top: 3px; color: rgba(255,255,255,0.22); font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .timeline-value.has-val { color: var(--text); }
+    .timeline-arrow { color: var(--accent); font-size: 1.1rem; }
+    .trend-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .metric { padding: 10px 8px; border-radius: 8px; text-align: center; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); }
+    .metric-label { color: var(--muted); font-size: 0.58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.45px; }
+    .metric-value { display: block; margin-top: 4px; color: rgba(255,255,255,0.22); font-size: 1.2rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .metric-value.has-val { color: var(--text); }
+    .trend-reading { margin-top: 10px; padding: 10px 11px; border-radius: 8px; background: var(--accent-soft); border-left: 3px solid var(--accent); color: var(--sub); font-size: 0.74rem; line-height: 1.48; }
+    .trend-reading strong { color: var(--text); }
 
-    .result-box {
-      border-radius: 12px; padding: 24px 18px; text-align: center;
-      background: var(--surface); border: 1px solid var(--border);
-      transition: background 0.3s, border-color 0.3s; min-height: 110px;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-    }
-    .result-box.green  { background: var(--ga); border-color: var(--gb); }
-    .result-box.yellow { background: var(--ya); border-color: var(--yb); }
-    .result-box.red    { background: var(--ra); border-color: var(--rb); }
-
-    .result-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 7px; }
-    .result-value { font-size: 3rem; font-weight: 800; color: rgba(255,255,255,0.2); letter-spacing: -1px; line-height: 1; transition: color 0.3s; }
-    .result-value.green  { color: var(--green); }
-    .result-value.yellow { color: var(--yellow); }
-    .result-value.red    { color: var(--red); }
-    .result-interp { margin-top: 8px; font-size: 0.86rem; font-weight: 600; color: var(--muted); }
-    .result-interp.green  { color: var(--green); }
-    .result-interp.yellow { color: var(--yellow); }
-    .result-interp.red    { color: var(--red); }
-
-    /* Zones strip */
-    .zones { display: flex; gap: 0; margin-top: 14px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
-    .zone { flex: 1; padding: 8px 4px; text-align: center; font-size: 0.68rem; font-weight: 700; }
-    .zone .zone-val { font-size: 0.78rem; display: block; margin-bottom: 2px; }
-    .zone.green  { background: var(--ga); color: var(--green); }
-    .zone.yellow { background: var(--ya); color: var(--yellow); border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
-    .zone.red    { background: var(--ra); color: var(--red); }
-
-    /* Fisiopatología */
-    .fisio-wrap { margin-top: 12px; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); display: none; }
-    .fisio-wrap.visible { display: block; }
-    .fisio-wrap.green  { border-color: var(--gb); }
-    .fisio-wrap.yellow { border-color: var(--yb); }
-    .fisio-wrap.red    { border-color: var(--rb); }
-    .fisio-toggle {
-      width: 100%; padding: 11px 14px; background: none; border: none; cursor: pointer;
-      display: flex; align-items: center; justify-content: space-between;
-      font-size: 0.76rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;
-      color: var(--sub); transition: background 0.2s;
-    }
-    .fisio-toggle:hover { background: var(--surface-hover); }
-    .fisio-toggle.green  { color: var(--green); }
-    .fisio-toggle.yellow { color: var(--yellow); }
-    .fisio-toggle.red    { color: var(--red); }
-    .fisio-arrow { font-size: 0.65rem; color: var(--muted); transition: transform 0.25s; }
-    .fisio-arrow.open { transform: rotate(180deg); }
-    .fisio-body { display: none; padding: 0 14px 14px; background: rgba(255,255,255,0.02); }
-    .fisio-body.open { display: block; }
-    .fisio-body p { font-size: 0.84rem; line-height: 1.65; color: rgba(255,255,255,0.7); margin-bottom: 9px; }
-    .fisio-body p:last-child { margin-bottom: 0; }
-    .fisio-body strong { color: var(--text); }
-    .tag { display: inline-block; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 8px; border-radius: 6px; margin-bottom: 9px; }
-    .tag.green  { background: var(--ga); color: var(--green); border: 1px solid var(--gb); }
-    .tag.yellow { background: var(--ya); color: var(--yellow); border: 1px solid var(--yb); }
-    .tag.red    { background: var(--ra); color: var(--red); border: 1px solid var(--rb); }
-    .divider { height: 1px; background: var(--border); margin: 9px 0; }
-
-    .clear-btn {
-      width: 100%; margin-top: 16px; padding: 12px; background: none;
-      border: 1px solid var(--border); border-radius: 8px; font-size: 0.86rem;
-      font-weight: 600; color: var(--muted); cursor: pointer; transition: background 0.2s, color 0.2s;
-    }
+    .safety-note { margin-top: 12px; padding: 11px 12px; border-radius: 10px; background: var(--ya); border: 1px solid var(--yb); color: #f6c86b; font-size: 0.7rem; line-height: 1.5; }
+    .safety-note strong { color: var(--text); }
+    .source-note { margin-top: 10px; color: var(--muted); font-size: 0.64rem; line-height: 1.5; text-align: center; }
+    .source-note a { color: #91a8ff; }
+    .clear-btn { width: 100%; margin-top: 14px; padding: 12px; background: none; border: 1px solid var(--border); border-radius: 8px; font-size: 0.84rem; font-weight: 600; color: var(--muted); cursor: pointer; }
     .clear-btn:hover { background: var(--surface-hover); color: var(--sub); }
+    @media (max-width: 370px) { .time-grid { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
   <svg class="ecg-bg" xmlns="http://www.w3.org/2000/svg"></svg>
-  <div class="page">
+  <main class="page">
     <a class="back-btn" href="index.html">← Inicio</a>
-    <div class="header">
-      <h1>Diastolic Shock Index</h1>
-      <p>Índice de Shock Diastólico · FC ÷ PAD</p>
-    </div>
+    <header class="header">
+      <h1>Índice de Shock Diastólico</h1>
+      <p>Seguimiento serial documentado · Hora 0 y 6 horas</p>
+    </header>
 
-    <div class="field">
-      <label>FC — Frecuencia Cardíaca (lpm)</label>
-      <input type="number" id="fc" placeholder="ej. 110" inputmode="decimal" min="0" max="300" autocomplete="off">
-    </div>
-    <div class="field">
-      <label>PAD — Presión Arterial Diastólica (mmHg)</label>
-      <input type="number" id="pad" placeholder="ej. 50" inputmode="decimal" min="0" max="200" autocomplete="off">
-    </div>
-    <p class="formula-note">DSI = FC ÷ PAD</p>
+    <div class="formula-note"><strong>DSI = FC ÷ PAD</strong><br>FC en latidos/min · PAD en mmHg</div>
 
-    <div class="result-box" id="resultBox">
-      <div class="result-label">Resultado DSI</div>
-      <div class="result-value" id="resultValue">—</div>
-      <div class="result-interp" id="resultInterp">Ingresá los valores</div>
-    </div>
+    <section class="time-grid" aria-label="Puntos temporales de DSI">
+      <article class="time-card">
+        <div class="time-title">Hora 0 · basal</div>
+        <div class="time-sub">Valores documentados al inicio</div>
+        <div class="field"><label for="fc0">Frecuencia cardíaca basal</label><div class="input-unit"><input type="number" id="fc0" placeholder="FC" inputmode="decimal" min="1" max="300" step="1" autocomplete="off"><span class="unit">lpm</span></div></div>
+        <div class="field"><label for="pad0">Presión diastólica basal</label><div class="input-unit"><input type="number" id="pad0" placeholder="PAD" inputmode="decimal" min="1" max="200" step="1" autocomplete="off"><span class="unit">mmHg</span></div></div>
+        <div class="point-result"><div class="point-result-label">DSI basal</div><span class="point-result-value" id="dsi0">—</span></div>
+        <div class="validation" id="validation0" role="status"></div>
+      </article>
 
-    <div class="zones">
-      <div class="zone green"><span class="zone-val">&lt; 2.0</span>Normal</div>
-      <div class="zone yellow"><span class="zone-val">2.0 – 2.5</span>Moderado</div>
-      <div class="zone red"><span class="zone-val">&gt; 2.5</span>Severo</div>
-    </div>
+      <article class="time-card">
+        <div class="time-title">Hora 6</div>
+        <div class="time-sub">Nueva medición documentada</div>
+        <div class="field"><label for="fc6">Frecuencia cardíaca a 6 h</label><div class="input-unit"><input type="number" id="fc6" placeholder="FC" inputmode="decimal" min="1" max="300" step="1" autocomplete="off"><span class="unit">lpm</span></div></div>
+        <div class="field"><label for="pad6">Presión diastólica a 6 h</label><div class="input-unit"><input type="number" id="pad6" placeholder="PAD" inputmode="decimal" min="1" max="200" step="1" autocomplete="off"><span class="unit">mmHg</span></div></div>
+        <div class="point-result"><div class="point-result-label">DSI 6 h</div><span class="point-result-value" id="dsi6">—</span></div>
+        <div class="validation" id="validation6" role="status"></div>
+      </article>
+    </section>
 
-    <div class="fisio-wrap" id="fisioWrap">
-      <button class="fisio-toggle" id="fisioToggle" onclick="toggleFisio()">
-        <span>Ver fisiopatología y conducta</span>
-        <span class="fisio-arrow" id="fisioArrow">▼</span>
-      </button>
-      <div class="fisio-body" id="fisioBody"></div>
-    </div>
+    <section class="trend-card" aria-labelledby="trend-title">
+      <div class="trend-title" id="trend-title">Cambio serial 0 → 6 horas</div>
+      <div class="trend-sub">Lectura descriptiva respecto del basal</div>
+      <div class="timeline">
+        <div class="timeline-point"><span class="timeline-label">Basal</span><span class="timeline-value" id="timeline0">—</span></div>
+        <div class="timeline-arrow">→</div>
+        <div class="timeline-point"><span class="timeline-label">6 horas</span><span class="timeline-value" id="timeline6">—</span></div>
+      </div>
+      <div class="trend-metrics">
+        <div class="metric"><div class="metric-label">ΔDSI absoluto</div><span class="metric-value" id="deltaAbsolute">—</span><div class="unit">DSI₆h − DSI₀</div></div>
+        <div class="metric"><div class="metric-label">Cambio porcentual</div><span class="metric-value" id="percentChange">—</span><div class="unit">respecto del basal</div></div>
+      </div>
+      <div class="trend-reading" id="trendReading" role="status"><strong>Lectura pendiente:</strong> completá ambos puntos temporales.</div>
+    </section>
 
-    <button class="clear-btn" onclick="clearAll()">Limpiar</button>
-  </div>
+    <aside class="safety-note"><strong>Alcance clínico:</strong> el DSI no distingue por sí mismo vasoplejía de otras causas de taquicardia o PAD baja. Leer la tendencia junto con perfusión, lactato, ecografía y dosis vasoactiva. No usar ΔDSI como gatillo ni para indicar titulación de vasopresores.</aside>
+    <div class="source-note">Sarkar et al., <em>Indian J Crit Care Med</em> 2026;30(2):99–106 · PMID 41868080 · mediciones a 0, 6, 12 y 24 h. Estudio prospectivo observacional: asociación pronóstica, sin causalidad ni validación como regla de decisión. <a href="https://pubmed.ncbi.nlm.nih.gov/41868080/" target="_blank" rel="noreferrer">Ver fuente</a>.</div>
+    <button class="clear-btn" type="button" id="clearButton">Limpiar seguimiento</button>
+  </main>
 
+  <script src="dsi-calculos.js"></script>
   <script>
-    const FISIO = {
-      green:`<span class="tag green">DSI &lt; 2.0 — Compensado</span>
-<p><strong>Efecto Windkessel preservado.</strong> La aorta y los grandes vasos actúan como reservorio elástico: almacenan energía en sístole y la liberan en diástole, manteniendo la PAD. El tono arteriolar conservado sostiene la RVP y garantiza la perfusión diastólica.</p>
-<div class="divider"></div>
-<p><strong>Conducta:</strong> Taquicardia proporcional al estímulo (fiebre, dolor, hipovolemia leve). Sin evidencia hemodinámica de colapso vasomotor. Evaluar y tratar la causa. Monitoreo habitual.</p>`,
-      yellow:`<span class="tag yellow">DSI 2.0–2.5 — Riesgo moderado</span>
-<p><strong>Pérdida parcial del tono vasomotor.</strong> La vasodilatación sistémica reduce la RVP y la PAD. El efecto Windkessel se deteriora: la aorta no puede sostener la presión diastólica efectiva, acortando el tiempo de llenado coronario.</p>
-<div class="divider"></div>
-<p><strong>Taquicardia compensadora.</strong> El simpático aumenta la FC para mantener el GC. Esto eleva el numerador del DSI mientras la PAD cae — doble mecanismo que explica el ascenso del índice. La taquicardia sostenida acorta la diástole y reduce la perfusión subendocárdica.</p>
-<div class="divider"></div>
-<p><strong>Conducta:</strong> Zona de transición. Evaluar necesidad de vasopresores y carga de volumen. La PAD baja con FC alta es marcador de mal pronóstico independiente de la PAS.</p>`,
-      red:`<span class="tag red">DSI &gt; 2.5 — Shock severo</span>
-<p><strong>Colapso vasomotor.</strong> Pérdida profunda del tono arteriolar colapsa la RVP. La PAD cae críticamente porque no hay resistencia que sostenga la presión durante la diástole. El efecto Windkessel está abolido.</p>
-<div class="divider"></div>
-<p><strong>Caída de la PPC.</strong> PPC ≈ PAD − PCP (presión de cuña pulmonar). Con PAD muy baja la presión de perfusión coronaria colapsa incluso con PCP normal. El subendocardio —zona de mayor demanda y menor perfusión— entra en isquemia funcional, agravando la disfunción miocárdica.</p>
-<div class="divider"></div>
-<p><strong>Por qué la NE sola puede fallar.</strong> En vasoplejía profunda, incrementar la poscarga sin soporte inotrópico reduce el volumen sistólico si hay miocardiopatía séptica. Considerar <strong>vasopresina</strong> (receptor V1, ahorro de NE) y <strong>dobutamina o levosimendan</strong> si hay componente cardiogénico.</p>`
-    };
+    const { LIMITS, calculateDsi, calculateDsiTrend } = window.DsiCalculations;
+    const inputIds=['fc0','pad0','fc6','pad6'];
 
-    const fcInput=document.getElementById('fc'), padInput=document.getElementById('pad');
-    const box=document.getElementById('resultBox'), valEl=document.getElementById('resultValue'), interpEl=document.getElementById('resultInterp');
-    const fisioWrap=document.getElementById('fisioWrap'), fisioToggle=document.getElementById('fisioToggle');
-    const fisioArrow=document.getElementById('fisioArrow'), fisioBody=document.getElementById('fisioBody');
-    let fisioOpen=false, currentColor='';
+    function parseNumber(id){
+      const raw=document.getElementById(id).value;
+      if(raw==='') return null;
+      const value=Number(raw);
+      return Number.isFinite(value)?value:null;
+    }
 
-    function toggleFisio(){
-      fisioOpen=!fisioOpen;
-      fisioBody.classList.toggle('open',fisioOpen);
-      fisioArrow.classList.toggle('open',fisioOpen);
+    function setValue(id,value){
+      const el=document.getElementById(id);
+      el.textContent=value===null?'—':value;
+      el.classList.toggle('has-val',value!==null);
     }
-    function updateFisio(color){
-      if(color===currentColor) return;
-      currentColor=color; fisioOpen=false;
-      fisioBody.classList.remove('open'); fisioArrow.classList.remove('open');
-      ['green','yellow','red'].forEach(c=>{fisioWrap.classList.remove(c);fisioToggle.classList.remove(c);});
-      if(color){fisioWrap.classList.add('visible',color);fisioToggle.classList.add(color);fisioBody.innerHTML=FISIO[color];}
-      else{fisioWrap.classList.remove('visible');fisioBody.innerHTML='';}
+
+    function validatePoint(suffix,heartRate,diastolicPressure){
+      const validation=document.getElementById(`validation${suffix}`);
+      const hasHeartRate=document.getElementById(`fc${suffix}`).value!=='';
+      const hasPressure=document.getElementById(`pad${suffix}`).value!=='';
+      const messages=[];
+      if(hasHeartRate&&(heartRate===null||heartRate<LIMITS.heartRateBpm.min||heartRate>LIMITS.heartRateBpm.max)) messages.push('FC válida: 1–300 lpm.');
+      if(hasPressure&&(diastolicPressure===null||diastolicPressure<LIMITS.diastolicPressureMmHg.min||diastolicPressure>LIMITS.diastolicPressureMmHg.max)) messages.push('PAD válida: 1–200 mmHg.');
+      if(messages.length===0&&hasHeartRate!==hasPressure) messages.push('Completá FC y PAD.');
+      validation.textContent=messages.join(' ');
     }
-    function setResult(value,color,interp){
-      ['green','yellow','red'].forEach(c=>{box.classList.remove(c);valEl.classList.remove(c);interpEl.classList.remove(c);});
-      valEl.textContent=value!==null?value:'—';
-      interpEl.textContent=interp;
-      if(color){box.classList.add(color);valEl.classList.add(color);interpEl.classList.add(color);}
+
+    function formatSigned(value,decimals=2){
+      const sign=value>0?'+':'';
+      return `${sign}${value.toFixed(decimals)}`;
     }
-    function calculate(){
-      const fc=parseFloat(fcInput.value), pad=parseFloat(padInput.value);
-      if(!fcInput.value||!padInput.value||isNaN(fc)||isNaN(pad)){reset();return;}
-      if(pad===0){setResult(null,'','PAD no puede ser 0');updateFisio('');return;}
-      if(fc<=0||pad<=0){reset();return;}
-      const dsi=fc/pad;
-      if(dsi<2.0){setResult(dsi.toFixed(2),'green','Sin shock aparente');updateFisio('green');}
-      else if(dsi<=2.5){setResult(dsi.toFixed(2),'yellow','Riesgo moderado');updateFisio('yellow');}
-      else{setResult(dsi.toFixed(2),'red','Shock severo');updateFisio('red');}
+
+    function update(){
+      const fc0=parseNumber('fc0'),pad0=parseNumber('pad0');
+      const fc6=parseNumber('fc6'),pad6=parseNumber('pad6');
+      const dsi0=calculateDsi(fc0,pad0),dsi6=calculateDsi(fc6,pad6);
+      validatePoint('0',fc0,pad0); validatePoint('6',fc6,pad6);
+      setValue('dsi0',dsi0===null?null:dsi0.toFixed(2));
+      setValue('dsi6',dsi6===null?null:dsi6.toFixed(2));
+      setValue('timeline0',dsi0===null?null:dsi0.toFixed(2));
+      setValue('timeline6',dsi6===null?null:dsi6.toFixed(2));
+
+      const trend=calculateDsiTrend(fc0,pad0,fc6,pad6);
+      if(trend===null){
+        setValue('deltaAbsolute',null); setValue('percentChange',null);
+        document.getElementById('trendReading').innerHTML='<strong>Lectura pendiente:</strong> completá ambos puntos temporales con FC y PAD válidas.';
+        return;
+      }
+
+      setValue('deltaAbsolute',formatSigned(trend.absoluteDelta));
+      setValue('percentChange',`${formatSigned(trend.percentChange,1)}%`);
+      const reading=document.getElementById('trendReading');
+      if(trend.direction==='decrease') reading.innerHTML='<strong>↓ Descenso:</strong> el DSI a las 6 horas es menor que el DSI basal.';
+      else if(trend.direction==='increase') reading.innerHTML='<strong>↑ Ascenso:</strong> el DSI a las 6 horas es mayor que el DSI basal.';
+      else reading.innerHTML='<strong>→ Sin cambio:</strong> el DSI a las 6 horas es igual al DSI basal con la precisión calculada.';
     }
-    function reset(){setResult(null,'','Ingresá los valores');updateFisio('');}
-    function clearAll(){fcInput.value='';padInput.value='';reset();fcInput.focus();}
-    fcInput.addEventListener('input',calculate);
-    padInput.addEventListener('input',calculate);
+
+    function clearAll(){
+      inputIds.forEach(id=>document.getElementById(id).value='');
+      update(); document.getElementById('fc0').focus();
+    }
+
+    inputIds.forEach(id=>document.getElementById(id).addEventListener('input',update));
+    document.getElementById('clearButton').addEventListener('click',clearAll);
+    update();
 
     (function(){
       const svg=document.querySelector('.ecg-bg');
@@ -219,8 +191,7 @@
       const BW=240,n=Math.ceil(W/BW)+2;
       function line(y,s,o,w){
         let d=`M${-BW},${y}`;
-        for(let i=0;i<n;i++){const x=i*BW-BW;
-          d+=` H${x+28} L${x+31},${y-3} L${x+36},${y-4} L${x+40},${y} H${x+56} L${x+59},${y+4} L${x+63},${y-38} L${x+68},${y+12} L${x+72},${y} H${x+78} L${x+83},${y-2} L${x+96},${y-9} L${x+110},${y} H${x+BW}`;}
+        for(let i=0;i<n;i++){const x=i*BW-BW;d+=` H${x+28} L${x+31},${y-3} L${x+36},${y-4} L${x+40},${y} H${x+56} L${x+59},${y+4} L${x+63},${y-38} L${x+68},${y+12} L${x+72},${y} H${x+78} L${x+83},${y-2} L${x+96},${y-9} L${x+110},${y} H${x+BW}`;}
         return `<path d="${d}" stroke="${s}" stroke-width="${w}" fill="none" opacity="${o}" stroke-linecap="round" stroke-linejoin="round"/>`;
       }
       svg.innerHTML=[line(H*.22,'#e05555',0.35,1.5),line(H*.52,'#e05555',0.18,1.2),line(H*.76,'#378ADD',0.12,1.2)].join('');
