@@ -30,23 +30,30 @@
     h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.5px; }
     .header p { font-size: 0.78rem; color: var(--muted); margin-top: 5px; }
 
-    /* Peso global */
+    /* Antropometría global */
     .peso-bar {
       background: rgba(15,23,41,0.85); border: 1px solid rgba(255,255,255,0.12);
       border-radius: 12px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-      padding: 12px 16px; display: flex; align-items: center; gap: 14px;
-      margin-bottom: 18px; position: sticky; top: 8px; z-index: 10;
+      padding: 12px 14px; margin-bottom: 18px; position: sticky; top: 8px; z-index: 10;
     }
-    .peso-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); white-space: nowrap; }
+    .anthro-inputs, .anthro-results { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .anthro-results { margin-top: 10px; }
+    .anthro-field label { display: block; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 5px; }
+    .input-with-unit { display: flex; align-items: center; gap: 7px; }
     .peso-input {
-      flex: 1; padding: 8px 12px; font-size: 1.1rem; font-weight: 700;
+      width: 100%; min-width: 0; padding: 8px 10px; font-size: 1rem; font-weight: 700;
       color: var(--text); background: var(--input-bg); border: 1px solid var(--border);
       border-radius: 8px; outline: none; transition: border-color 0.2s;
-      -webkit-appearance: none; appearance: none; max-width: 110px;
+      -webkit-appearance: none; appearance: none;
     }
     .peso-input:focus { border-color: rgba(255,255,255,0.3); }
     .peso-input::placeholder { color: rgba(255,255,255,0.18); font-weight: 400; font-size: 0.9rem; }
     .peso-unit { font-size: 0.8rem; color: var(--muted); }
+    .anthro-result { padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.07); }
+    .anthro-result .res-val { font-size: 1rem; }
+    .anthro-help { margin-top: 9px; font-size: 0.66rem; line-height: 1.45; color: var(--muted); }
+    .validation-msg { display: none; margin-top: 8px; color: var(--yellow); font-size: 0.7rem; font-weight: 600; }
+    .validation-msg.visible { display: block; }
 
     /* Drug cards */
     .drug-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
@@ -101,6 +108,23 @@
     .res-unit { font-size: 0.6rem; color: var(--muted); margin-top: 2px; }
     .res-item.highlight { border-color: rgba(255,255,255,0.15); }
     .res-item.highlight .res-lbl { color: var(--sub); }
+    .ne-results { grid-template-columns: 1fr 1fr; }
+    .res-item.primary { grid-column: 1 / -1; padding: 12px; border-color: rgba(74,108,247,0.48); background: rgba(74,108,247,0.12); }
+    .res-item.primary .res-lbl { color: rgba(255,255,255,0.78); }
+    .res-item.primary .res-val { font-size: 1.45rem; }
+    .res-item.reference { grid-column: 1 / -1; background: rgba(255,255,255,0.018); }
+
+    .denominator-box { margin-top: 10px; padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.09); background: rgba(255,255,255,0.025); }
+    .denominator-title { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.55px; color: var(--sub); }
+    .denominator-options { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 8px; }
+    .denominator-option { display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--text); cursor: pointer; }
+    .denominator-option input { accent-color: var(--accent); }
+    .denominator-selected { margin-top: 8px; font-size: 0.72rem; line-height: 1.4; color: var(--sub); }
+    .context-note { margin-top: 10px; padding: 10px 12px; border-radius: 8px; font-size: 0.74rem; line-height: 1.48; background: rgba(74,108,247,0.10); border: 1px solid rgba(74,108,247,0.28); color: rgba(255,255,255,0.82); }
+    .context-note.obesity { background: var(--ya); border-color: var(--yb); color: #f6c86b; }
+    .context-note strong { color: var(--text); }
+    .dose-explainer { margin-top: 10px; padding: 9px 12px; border-left: 3px solid var(--accent); border-radius: 6px; background: rgba(74,108,247,0.07); color: var(--sub); font-size: 0.72rem; line-height: 1.5; }
+    .dose-explainer strong { color: var(--text); }
 
     /* Vasopresina special results */
     .vaso-results { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -133,14 +157,27 @@
     <a class="back-btn" href="index.html">← Inicio</a>
     <div class="header">
       <h1>Calculadora de Vasopresores</h1>
-      <p>Concentración · Dosis absoluta · GAMAS · Alertas</p>
+      <p>Concentración · Dosis absoluta · Dosis normalizada · Contexto clínico</p>
     </div>
 
-    <!-- Peso global sticky -->
+    <!-- Antropometría global sticky -->
     <div class="peso-bar">
-      <div class="peso-label">Peso del paciente</div>
-      <input class="peso-input" type="number" id="peso" placeholder="ej. 70" inputmode="decimal" min="0" max="300" oninput="recalcAll()">
-      <span class="peso-unit">kg</span>
+      <div class="anthro-inputs">
+        <div class="anthro-field">
+          <label for="peso">Peso real</label>
+          <div class="input-with-unit"><input class="peso-input" type="number" id="peso" placeholder="ej. 90" inputmode="decimal" min="20" max="350" step="0.1" oninput="recalcAll()"><span class="peso-unit">kg</span></div>
+        </div>
+        <div class="anthro-field">
+          <label for="talla">Talla</label>
+          <div class="input-with-unit"><input class="peso-input" type="number" id="talla" placeholder="ej. 170" inputmode="decimal" min="100" max="250" step="0.1" oninput="recalcAll()"><span class="peso-unit">cm</span></div>
+        </div>
+      </div>
+      <div class="anthro-results">
+        <div class="anthro-result"><div class="res-lbl">IMC</div><span class="res-val" id="imc">—</span><div class="res-unit">kg/m²</div></div>
+        <div class="anthro-result"><div class="res-lbl">Peso ideal estimado*</div><span class="res-val" id="peso-ideal">—</span><div class="res-unit">kg</div></div>
+      </div>
+      <div class="validation-msg" id="anthro-validation" role="status"></div>
+      <div class="anthro-help">*Referencia antropométrica transparente: IMC 22,5 × talla² (Peterson et al., 2016). No fue validada por Wendel-García et al. como denominador para noradrenalina.</div>
     </div>
 
     <!-- NE -->
@@ -148,9 +185,8 @@
       <div class="drug-header">
         <div class="drug-info">
           <span class="drug-emoji">🔴</span>
-          <div><div class="drug-name">Norepinefrina</div><div class="drug-amp">4 mg / amp</div></div>
+          <div><div class="drug-name">Noradrenalina (norepinefrina)</div><div class="drug-amp">4 mg / amp</div></div>
         </div>
-        <span class="drug-sofabadge" id="ne-badge"></span>
       </div>
       <div class="drug-body">
         <div class="input-row">
@@ -158,13 +194,22 @@
           <div class="inp-group"><label>Vol final (mL)</label><input type="number" id="ne-vol" placeholder="ej. 100" inputmode="decimal" min="0" oninput="calc('ne')"></div>
         </div>
         <div class="inp-group full"><label>Velocidad bomba (mL/h)</label><input type="number" id="ne-vel" placeholder="ej. 8" inputmode="decimal" min="0" oninput="calc('ne')"></div>
-        <div class="results-grid">
-          <div class="res-item"><div class="res-lbl">Concentración</div><span class="res-val" id="ne-conc">—</span><div class="res-unit">mcg/mL</div></div>
-          <div class="res-item"><div class="res-lbl">Dosis abs.</div><span class="res-val" id="ne-abs">—</span><div class="res-unit">mcg/min</div></div>
-          <div class="res-item highlight"><div class="res-lbl">GAMAS</div><span class="res-val" id="ne-gamas">—</span><div class="res-unit">mcg/kg/min</div></div>
+        <div class="results-grid ne-results">
+          <div class="res-item primary"><div class="res-lbl">Dosis absoluta de bomba</div><span class="res-val" id="ne-abs">—</span><div class="res-unit">µg/min</div></div>
+          <div class="res-item"><div class="res-lbl">Concentración</div><span class="res-val" id="ne-conc">—</span><div class="res-unit">µg/mL</div></div>
+          <div class="res-item"><div class="res-lbl">Por peso real</div><span class="res-val" id="ne-gamas">—</span><div class="res-unit">µg/kg/min (peso real)</div></div>
+          <div class="res-item reference"><div class="res-lbl">Por peso ideal* · referencia opcional</div><span class="res-val" id="ne-gamas-ideal">—</span><div class="res-unit">µg/kg/min (peso ideal estimado; no validado para noradrenalina)</div></div>
         </div>
-        <div class="alert-bar" id="ne-alert"></div>
-        <div class="sofa-bar" id="ne-sofa"></div>
+        <div class="denominator-box">
+          <div class="denominator-title">Denominador documentado para µg/kg/min</div>
+          <div class="denominator-options">
+            <label class="denominator-option"><input type="radio" name="ne-denominator" value="real" checked onchange="recalcAll()"> Peso real</label>
+            <label class="denominator-option"><input type="radio" name="ne-denominator" value="ideal" id="ne-denom-ideal" onchange="recalcAll()"> Peso ideal estimado*</label>
+          </div>
+          <div class="denominator-selected" id="ne-selected">La selección documenta el denominador; no modifica la bomba.</div>
+        </div>
+        <div class="context-note" id="ne-context"><strong>Interpretación:</strong> ingresá peso y talla para contextualizar la dosis.</div>
+        <div class="dose-explainer"><strong>Mismo valor absoluto ≠ misma gamma:</strong> 20 µg/min equivalen a 0,20 µg/kg/min con 100 kg; 0,25 con 80 kg; y 0,33 con 60 kg. Es una comparación matemática, no un umbral terapéutico.</div>
       </div>
     </div>
 
@@ -262,9 +307,15 @@
       </div>
     </div>
 
-    <div class="ref-note">SSC 2021 · Dellinger et al. · Uso clínico de apoyo<br>Verificar siempre con protocolo institucional</div>
+    <div class="ref-note">
+      Wendel-García et al., <em>Anesthesiology</em> 2026 · PMID 42090639 · DOI 10.1097/ALN.0000000000006134<br>
+      Estudio observacional: informa interpretación y estratificación; no define titulación ni valida peso ideal como denominador.<br>
+      Peso ideal estimado: Peterson et al., <em>Am J Clin Nutr</em> 2016 · DOI 10.3945/ajcn.115.121178 (referencia antropométrica, no recomendación para noradrenalina).<br>
+      Uso clínico de apoyo · Verificar siempre con protocolo institucional
+    </div>
   </div>
 
+  <script src="vasopresores-calculos.js"></script>
   <script>
     const DRUGS = {
       ne:   { mgPerAmp: 4,    unit:'mcg' },
@@ -275,7 +326,38 @@
 
     let vasoDose = null;
 
-    function getPeso(){ return parseFloat(document.getElementById('peso').value)||0; }
+    const { LIMITS, calculateBmi, calculateReferenceWeight, calculateInfusionDose, normalizeDose } = window.VasopressorCalculations;
+
+    function parseNumber(id){
+      const value=parseFloat(document.getElementById(id).value);
+      return Number.isFinite(value)?value:null;
+    }
+
+    function getPeso(){ return parseNumber('peso'); }
+    function getTalla(){ return parseNumber('talla'); }
+
+    function updateAnthropometry(){
+      const peso=getPeso();
+      const talla=getTalla();
+      const bmi=calculateBmi(peso,talla);
+      const ideal=calculateReferenceWeight(talla);
+      const validation=document.getElementById('anthro-validation');
+      const idealRadio=document.getElementById('ne-denom-ideal');
+
+      setVal('imc',bmi===null?null:bmi.toFixed(1));
+      setVal('peso-ideal',ideal===null?null:ideal.toFixed(1));
+      idealRadio.disabled=ideal===null;
+      if(ideal===null && idealRadio.checked){
+        document.querySelector('input[name="ne-denominator"][value="real"]').checked=true;
+      }
+
+      const messages=[];
+      if(peso!==null && (peso<LIMITS.weightKg.min || peso>LIMITS.weightKg.max)) messages.push(`Peso real: usar ${LIMITS.weightKg.min}–${LIMITS.weightKg.max} kg.`);
+      if(talla!==null && (talla<LIMITS.heightCm.min || talla>LIMITS.heightCm.max)) messages.push(`Talla: usar ${LIMITS.heightCm.min}–${LIMITS.heightCm.max} cm.`);
+      validation.textContent=messages.join(' ');
+      validation.className=messages.length?'validation-msg visible':'validation-msg';
+      return { bmi, ideal };
+    }
 
     function fmt(v,dec=2){ return v===null||isNaN(v)?'—':v.toFixed(dec); }
 
@@ -293,80 +375,81 @@
       const vol=parseFloat(document.getElementById(`${drug}-vol`).value);
       const vel=parseFloat(document.getElementById(`${drug}-vel`).value);
       const peso=getPeso();
+      const anthro=updateAnthropometry();
       const d=DRUGS[drug];
 
       if(!amp||!vol||amp<=0||vol<=0){
         setVal(`${drug}-conc`,null); setVal(`${drug}-abs`,null); setVal(`${drug}-gamas`,null);
-        if(drug==='ne') updateNEAlerts(null);
+        if(drug==='ne'){ setVal('ne-gamas-ideal',null); updateNEContext(null,anthro.bmi,null); }
         if(drug==='dobu'||drug==='adre') updateAlert(drug,null);
         return;
       }
 
-      const conc=(amp*d.mgPerAmp*1000)/vol;
+      const infusion=calculateInfusionDose(amp,d.mgPerAmp,vol,vel);
+      const conc=infusion.concentrationMcgMl;
       setVal(`${drug}-conc`,conc<1?conc.toFixed(3):conc.toFixed(1));
 
       if(!vel||vel<=0){
         setVal(`${drug}-abs`,null); setVal(`${drug}-gamas`,null);
-        if(drug==='ne') updateNEAlerts(null);
+        if(drug==='ne'){ setVal('ne-gamas-ideal',null); updateNEContext(null,anthro.bmi,null); }
         if(drug==='dobu'||drug==='adre') updateAlert(drug,null);
         return;
       }
 
-      const dosisAbs=conc*vel/60;
+      const dosisAbs=infusion.absoluteMcgMin;
       setVal(`${drug}-abs`,dosisAbs<1?dosisAbs.toFixed(3):dosisAbs.toFixed(2));
 
-      if(peso>0){
-        const gamas=dosisAbs/peso;
+      const gamas=normalizeDose(dosisAbs,peso);
+      if(gamas!==null){
         let gc=null;
-        if(drug==='ne')  gc = gamas>0.4?'danger':gamas>0.25?'warn':null;
         if(drug==='dobu') gc = gamas>10?'danger':gamas>5?'warn':null;
         if(drug==='adre') gc = gamas>0.1?'danger':gamas>0.05?'warn':null;
         setVal(`${drug}-gamas`,gamas<0.1?gamas.toFixed(4):gamas.toFixed(3),gc);
-        if(drug==='ne') updateNEAlerts(gamas);
+        if(drug==='ne'){
+          const idealDose=normalizeDose(dosisAbs,anthro.ideal);
+          setVal('ne-gamas-ideal',idealDose===null?null:(idealDose<0.1?idealDose.toFixed(4):idealDose.toFixed(3)));
+          updateNEContext(gamas,anthro.bmi,idealDose);
+        }
         if(drug==='dobu') updateAlert('dobu',gamas);
         if(drug==='adre') updateAlert('adre',gamas);
       } else {
         setVal(`${drug}-gamas`,null);
         const el=document.getElementById(`${drug}-gamas`);
         el.textContent='Peso?'; el.className='res-val';
-        if(drug==='ne') updateNEAlerts(null);
+        if(drug==='ne'){ setVal('ne-gamas-ideal',null); updateNEContext(null,anthro.bmi,null); }
         if(drug==='dobu') updateAlert('dobu',null);
         if(drug==='adre') updateAlert('adre',null);
       }
     }
 
-    function updateNEAlerts(gamas){
-      const alertEl=document.getElementById('ne-alert');
-      const sofaEl=document.getElementById('ne-sofa');
-      const badge=document.getElementById('ne-badge');
+    function updateNEContext(realDose,bmi,idealDose){
+      const contextEl=document.getElementById('ne-context');
+      const selectedEl=document.getElementById('ne-selected');
+      const selectedType=document.querySelector('input[name="ne-denominator"]:checked').value;
+      const selectedDose=selectedType==='ideal'?idealDose:realDose;
 
-      alertEl.className='alert-bar';
-      sofaEl.className='sofa-bar';
-      badge.className='drug-sofabadge';
-
-      if(gamas===null){return;}
-
-      // SOFA-2
-      let sofaClass='', sofaPts='', sofaLabel='';
-      if(gamas<=0.2){sofaClass='sofa2';sofaPts='2';sofaLabel='SOFA CV: 2 pts (NE ≤ 0.2)';}
-      else if(gamas<=0.4){sofaClass='sofa3';sofaPts='3';sofaLabel='SOFA CV: 3 pts (NE 0.2–0.4)';}
-      else{sofaClass='sofa4';sofaPts='4';sofaLabel='SOFA CV: 4 pts (NE > 0.4)';}
-
-      badge.textContent=`SOFA-2 CV: ${sofaPts}`;
-      badge.classList.add('visible',sofaClass);
-
-      sofaEl.innerHTML=`<span>${sofaLabel}</span><span class="sofa-pts">${sofaPts} pts</span>`;
-      sofaEl.classList.add('visible',sofaClass);
-
-      // Alerts
-      if(gamas>0.4){
-        alertEl.textContent='⚠ Shock refractario — considerar ECMO o Impella';
-        alertEl.classList.add('danger');
-      } else if(gamas>0.25){
-        alertEl.textContent='⚠ NE > 0.25 mcg/kg/min — agregar vasopresina (SSC 2021)';
-        alertEl.classList.add('warn');
+      if(selectedDose===null){
+        selectedEl.textContent='La selección documenta el denominador; no modifica la bomba.';
+      } else {
+        const label=selectedType==='ideal'?'peso ideal estimado':'peso real';
+        selectedEl.textContent=`Seleccionado: ${fmtDose(selectedDose)} µg/kg/min con ${label}. La dosis absoluta de bomba no cambia.`;
       }
+
+      contextEl.className='context-note';
+      if(bmi===null){
+        contextEl.innerHTML='<strong>Interpretación:</strong> ingresá peso real y talla válidos para calcular IMC y evaluar el posible sesgo de la dosis normalizada.';
+        return;
+      }
+      if(bmi>=30){
+        contextEl.classList.add('obesity');
+        contextEl.innerHTML='<strong>IMC ≥30:</strong> las gammas calculadas con peso real pueden subestimar la severidad. Revisar la dosis absoluta (µg/min) junto con perfusión y respuesta hemodinámica; no usar µg/kg/min como único indicador. El estudio no valida reemplazar automáticamente peso real por peso ideal y esta vista no cambia la titulación.';
+        return;
+      }
+
+      contextEl.innerHTML='<strong>IMC <30:</strong> se muestran dosis absoluta y normalizada. Ninguna cifra aislada reemplaza la respuesta hemodinámica, la perfusión ni el protocolo institucional.';
     }
+
+    function fmtDose(value){ return value<0.1?value.toFixed(4):value.toFixed(3); }
 
     function updateAlert(drug,gamas){
       const el=document.getElementById(`${drug}-alert`);
@@ -408,6 +491,7 @@
     }
 
     function recalcAll(){
+      updateAnthropometry();
       ['ne','dobu','adre','ntg'].forEach(calc);
       calcVaso();
     }
