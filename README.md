@@ -29,3 +29,13 @@ El asistente SOFA-2 cardiovascular calcula `µg/kg/min` exclusivamente con peso 
 ```powershell
 node .\tests\dsi-calculos.test.js
 ```
+
+## PCR / albúmina en sepsis adulta
+
+`albumina.html` conserva el cálculo `PCR (mg/L) ÷ albúmina (g/dL)` y permite una comparación serial opcional con fecha y hora. La lógica pura y su validación están en `albumina-calculos.js`. El resultado no usa bandas de gravedad, no diagnostica fuga capilar y no dispara decisiones sobre cristaloides o albúmina.
+
+La pantalla separa evidencia fisiopatológica observacional de evidencia terapéutica: Seldén et al. (*Critical Care* 2025; PMID 40057738), Wiedermann et al. (2025; PMID 40806877), ARISS (*JAMA Network Open* 2026; DOI 10.1001/jamanetworkopen.2025.59297) y recomendaciones SSC 2026.
+
+```powershell
+node .\tests\albumina-calculos.test.js
+```
