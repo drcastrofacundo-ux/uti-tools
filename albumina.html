@@ -10,7 +10,7 @@
       --bg:#0a0f1e; --surface:rgba(255,255,255,.055); --surface-2:#0f1729;
       --border:rgba(255,255,255,.12); --text:#fff; --sub:rgba(255,255,255,.72);
       --muted:rgba(255,255,255,.48); --accent:#6ea8fe; --teal:#53d6bd;
-      --amber:#f4ba61; --red:#f28a8a;
+      --yellow:#e7d36e; --amber:#f4ba61; --orange:#ef9b55; --red:#f28a8a;
     }
     body { background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; min-height:100vh; }
     .ecg-bg { position:fixed; inset:0; width:100vw; height:100vh; pointer-events:none; z-index:0; }
@@ -37,6 +37,24 @@
     .result small { display:block; color:var(--muted); font-size:.69rem; text-transform:uppercase; font-weight:800; letter-spacing:.55px; }
     .result strong { color:var(--teal); font-size:2rem; line-height:1.05; }
     .result p { color:var(--sub); font-size:.75rem; line-height:1.35; text-align:right; max-width:235px; }
+    .result[data-level="historical-reference"] { background:rgba(83,214,189,.09); border-color:rgba(83,214,189,.38); }
+    .result[data-level="historical-reference"] strong { color:var(--teal); }
+    .result[data-level="elevated"] { background:rgba(231,211,110,.1); border-color:rgba(231,211,110,.42); }
+    .result[data-level="elevated"] strong { color:var(--yellow); }
+    .result[data-level="published-threshold"] { background:rgba(239,155,85,.11); border-color:rgba(239,155,85,.45); }
+    .result[data-level="published-threshold"] strong { color:var(--orange); }
+    .result[data-level="higher-published-range"] { background:rgba(242,138,138,.11); border-color:rgba(242,138,138,.48); }
+    .result[data-level="higher-published-range"] strong { color:var(--red); }
+    .reference-scale { margin-top:13px; padding:12px; border:1px solid var(--border); border-radius:10px; background:rgba(255,255,255,.025); }
+    .reference-scale h3 { font-size:.78rem; }
+    .reference-scale > p { color:var(--muted); font-size:.7rem; line-height:1.45; margin-top:4px; }
+    .scale-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:5px; margin-top:10px; }
+    .scale-band { min-height:58px; padding:8px 6px; border-radius:7px; border:1px solid transparent; font-size:.65rem; line-height:1.25; color:var(--sub); }
+    .scale-band b { display:block; color:var(--text); font-size:.69rem; margin-bottom:3px; }
+    .scale-band.reference { background:rgba(83,214,189,.1); border-color:rgba(83,214,189,.32); }
+    .scale-band.elevated { background:rgba(231,211,110,.1); border-color:rgba(231,211,110,.34); }
+    .scale-band.threshold { background:rgba(239,155,85,.11); border-color:rgba(239,155,85,.36); }
+    .scale-band.higher { background:rgba(242,138,138,.11); border-color:rgba(242,138,138,.38); }
     .meaning { color:var(--sub); font-size:.8rem; line-height:1.55; margin-top:12px; }
     .meaning strong { color:var(--text); }
     details { margin-top:12px; }
@@ -56,7 +74,7 @@
     .actions { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:14px; }
     .clear-btn { border:1px solid var(--border); color:var(--sub); background:transparent; border-radius:9px; padding:10px 14px; font-weight:700; cursor:pointer; }
     .privacy { color:var(--muted); font-size:.68rem; }
-    @media (max-width:390px) { .fields { grid-template-columns:1fr; } .result { align-items:flex-start; } .result p { text-align:left; } }
+    @media (max-width:390px) { .fields { grid-template-columns:1fr; } .result { align-items:flex-start; } .result p { text-align:left; } .scale-grid { grid-template-columns:1fr 1fr; } }
   </style>
 </head>
 <body>
@@ -88,9 +106,19 @@
         <input id="currentTime" type="datetime-local">
       </div>
       <div class="error" id="currentError" role="alert"></div>
-      <div class="result" aria-live="polite">
+      <div class="result" id="currentResult" aria-live="polite">
         <div><small>Cociente actual</small><strong id="currentRatio">—</strong></div>
         <p id="currentMessage">Ingresá PCR y albúmina para calcular.</p>
+      </div>
+      <div class="reference-scale" aria-label="Referencias observacionales publicadas">
+        <h3>Contexto bibliográfico, no clasificación diagnóstica</h3>
+        <p>Colores para advertir que el cociente aumenta. No representan fuga leve, moderada o grave y no indican tratamiento.</p>
+        <div class="scale-grid">
+          <div class="scale-band reference"><b>≤25</b>Rango histórico citado</div>
+          <div class="scale-band elevated"><b>&gt;25 a &lt;61</b>Cociente elevado</div>
+          <div class="scale-band threshold"><b>61 a &lt;74</b>Supera umbral publicado</div>
+          <div class="scale-band higher"><b>≥74</b>Rango pronóstico 74–86 o mayor</div>
+        </div>
       </div>
       <p class="meaning"><strong>Qué expresa:</strong> un valor mayor puede resultar de PCR más alta, albúmina más baja o ambas. La concentración de albúmina también depende de respuesta de fase aguda negativa, dilución y balance, síntesis, distribución y pérdidas.</p>
 
@@ -152,6 +180,7 @@
     const ids = ['currentPcr','currentAlbumin','previousPcr','previousAlbumin','currentTime','previousTime'];
     const elements = Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
     const currentRatio = document.getElementById('currentRatio');
+    const currentResult = document.getElementById('currentResult');
     const currentMessage = document.getElementById('currentMessage');
     const currentError = document.getElementById('currentError');
     const trendError = document.getElementById('trendError');
@@ -190,6 +219,7 @@
       if (!hasPcr || !hasAlbumin) {
         currentError.textContent = '';
         currentRatio.textContent = '—';
+        currentResult.removeAttribute('data-level');
         currentMessage.textContent = 'Ingresá PCR y albúmina para calcular.';
         return null;
       }
@@ -197,12 +227,15 @@
       if (ratio === null) {
         currentError.textContent = 'PCR debe ser ≥ 0 mg/L y albúmina > 0 g/dL.';
         currentRatio.textContent = '—';
+        currentResult.removeAttribute('data-level');
         currentMessage.textContent = 'Revisá los valores y las unidades.';
         return null;
       }
       currentError.textContent = '';
       currentRatio.textContent = formatRatio(ratio);
-      currentMessage.textContent = 'Inflamación + hipoalbuminemia; sin banda de gravedad ni indicación automática.';
+      const classification = AlbuminCalculations.classifyCrpAlbuminRatio(ratio);
+      currentResult.dataset.level = classification.key;
+      currentMessage.textContent = `${classification.label}. Referencia observacional; no diagnostica fuga ni indica tratamiento.`;
       return { pcr, albumin, ratio };
     }
 

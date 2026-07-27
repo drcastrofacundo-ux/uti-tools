@@ -5,6 +5,7 @@ const {
   isValidCrp,
   isValidAlbumin,
   calculateCrpAlbuminRatio,
+  classifyCrpAlbuminRatio,
   calculateRatioTrend,
 } = require('../albumina-calculos.js');
 
@@ -20,6 +21,15 @@ assert.equal(isValidAlbumin(3.5), true);
 closeTo(calculateCrpAlbuminRatio(120, 3), 40);
 assert.equal(calculateCrpAlbuminRatio(-1, 3), null);
 assert.equal(calculateCrpAlbuminRatio(120, 0), null);
+
+assert.equal(classifyCrpAlbuminRatio(-1), null);
+assert.equal(classifyCrpAlbuminRatio(25).key, 'historical-reference');
+assert.equal(classifyCrpAlbuminRatio(25.1).key, 'elevated');
+assert.equal(classifyCrpAlbuminRatio(60.9).key, 'elevated');
+assert.equal(classifyCrpAlbuminRatio(61).key, 'published-threshold');
+assert.equal(classifyCrpAlbuminRatio(73.9).key, 'published-threshold');
+assert.equal(classifyCrpAlbuminRatio(74).key, 'higher-published-range');
+assert.equal(classifyCrpAlbuminRatio(86).key, 'higher-published-range');
 
 const increase = calculateRatioTrend(60, 3, 120, 3);
 closeTo(increase.previousRatio, 20);
