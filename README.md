@@ -39,3 +39,13 @@ La pantalla separa evidencia fisiopatológica observacional de evidencia terapé
 ```powershell
 node .\tests\albumina-calculos.test.js
 ```
+
+## Transporte de oxígeno
+
+`oxigeno.html` permite usar el CaO₂ informado por gases arteriales o calcularlo desde Hb (`g/dL`), SaO₂ (`%`) y PaO₂ (`mmHg`). Con gasto cardíaco ecográfico (`L/min`), peso real (`kg`) y talla (`cm`) calcula superficie corporal por Mosteller, índice cardíaco, DO₂ absoluto y DO₂I.
+
+Las tarjetas cromáticas expresan referencias fisiológicas adultas orientativas y no gatillos terapéuticos. Se conservan en paralelo los valores absolutos e indexados; en obesidad no se sustituye automáticamente el peso real ni se oculta el gasto cardíaco absoluto.
+
+```powershell
+node .\tests\oxigeno-calculos.test.js
+```

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CaO₂ y transporte de oxígeno — UTI Tools</title>
+  <style>
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    :root {
+      --bg:#0a0f1e; --surface:rgba(255,255,255,.055); --surface-2:#0f1729;
+      --border:rgba(255,255,255,.12); --text:#fff; --sub:rgba(255,255,255,.70);
+      --muted:rgba(255,255,255,.43); --accent:#78a8ff; --accent-soft:rgba(120,168,255,.11);
+      --green:#55d6ad; --green-soft:rgba(85,214,173,.11); --green-border:rgba(85,214,173,.33);
+      --yellow:#f0b85d; --yellow-soft:rgba(240,184,93,.11); --yellow-border:rgba(240,184,93,.34);
+      --red:#f28484; --red-soft:rgba(242,132,132,.11); --red-border:rgba(242,132,132,.34);
+      --blue:#73b8ff; --blue-soft:rgba(115,184,255,.11); --blue-border:rgba(115,184,255,.34);
+    }
+    body { min-height:100vh; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+    .ecg-bg { position:fixed; inset:0; width:100vw; height:100vh; pointer-events:none; z-index:0; }
+    .page { position:relative; z-index:1; width:min(100%,590px); margin:0 auto; padding:24px 16px 56px; }
+    .back-btn { display:inline-flex; color:var(--sub); text-decoration:none; background:var(--surface); border:1px solid var(--border); padding:7px 12px; border-radius:9px; font-size:.8rem; font-weight:700; margin-bottom:20px; }
+    h1 { font-size:1.55rem; line-height:1.15; letter-spacing:-.4px; }
+    .lead { margin-top:7px; color:var(--sub); font-size:.84rem; line-height:1.5; }
+    .scope { margin:17px 0 13px; padding:11px 13px; border:1px solid rgba(120,168,255,.36); background:var(--accent-soft); border-radius:11px; color:#dce9ff; font-size:.79rem; line-height:1.5; }
+    .scope strong { color:#fff; }
+    .card { margin-top:12px; padding:15px; border:1px solid var(--border); border-radius:13px; background:var(--surface); backdrop-filter:blur(4px); }
+    .card h2 { font-size:.96rem; }
+    .card-intro { margin-top:5px; color:var(--muted); font-size:.74rem; line-height:1.45; }
+    .field { margin-top:12px; }
+    .field label { display:block; margin-bottom:6px; color:var(--sub); font-size:.69rem; font-weight:800; text-transform:uppercase; letter-spacing:.55px; }
+    .input-wrap { position:relative; }
+    input, select { width:100%; color:var(--text); background:var(--surface-2); border:1px solid var(--border); border-radius:9px; padding:11px 60px 11px 11px; font-size:.95rem; outline:none; }
+    select { padding-right:34px; color-scheme:dark; }
+    input:focus, select:focus { border-color:rgba(120,168,255,.7); box-shadow:0 0 0 3px rgba(120,168,255,.1); }
+    input.invalid { border-color:var(--red); }
+    .unit { position:absolute; right:10px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:.67rem; font-weight:800; pointer-events:none; }
+    .fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+    .fields.three { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .source-panel[hidden] { display:none; }
+    .error { min-height:17px; margin-top:7px; color:var(--red); font-size:.7rem; line-height:1.35; }
+    .components { display:none; grid-template-columns:1fr 1fr; gap:8px; margin-top:11px; }
+    .components.visible { display:grid; }
+    .component { padding:9px; border:1px solid var(--border); border-radius:8px; background:rgba(255,255,255,.03); text-align:center; }
+    .component small { display:block; color:var(--muted); font-size:.61rem; font-weight:800; text-transform:uppercase; }
+    .component strong { display:block; margin-top:3px; font-size:1rem; }
+    .component span { color:var(--muted); font-size:.62rem; }
+    .formula { margin-top:11px; padding:9px 10px; border-radius:8px; background:rgba(255,255,255,.035); color:var(--sub); font-size:.7rem; line-height:1.45; font-variant-numeric:tabular-nums; }
+    .results-title { display:flex; align-items:flex-end; justify-content:space-between; gap:10px; margin:19px 1px 8px; }
+    .results-title h2 { font-size:1rem; }
+    .legend-inline { color:var(--muted); font-size:.63rem; }
+    .results { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .metric { min-height:166px; padding:13px; border:1px solid var(--border); border-radius:12px; background:var(--surface); display:flex; flex-direction:column; }
+    .metric.reference { background:var(--green-soft); border-color:var(--green-border); }
+    .metric.below { background:var(--yellow-soft); border-color:var(--yellow-border); }
+    .metric.markedly-low { background:var(--red-soft); border-color:var(--red-border); }
+    .metric.elevated { background:var(--blue-soft); border-color:var(--blue-border); }
+    .metric-label { color:var(--muted); font-size:.64rem; font-weight:800; text-transform:uppercase; letter-spacing:.6px; }
+    .metric-value-row { display:flex; align-items:baseline; gap:5px; margin-top:7px; }
+    .metric-value { color:rgba(255,255,255,.25); font-size:2rem; line-height:1; font-weight:850; font-variant-numeric:tabular-nums; }
+    .metric.has-value .metric-value { color:var(--text); }
+    .metric.reference .metric-value { color:var(--green); }
+    .metric.below .metric-value { color:var(--yellow); }
+    .metric.markedly-low .metric-value { color:var(--red); }
+    .metric.elevated .metric-value { color:var(--blue); }
+    .metric-unit { color:var(--muted); font-size:.63rem; line-height:1.2; }
+    .metric-status { display:inline-flex; align-self:flex-start; margin-top:9px; padding:3px 7px; border-radius:99px; border:1px solid var(--border); color:var(--sub); font-size:.62rem; font-weight:800; }
+    .metric.reference .metric-status { border-color:var(--green-border); color:var(--green); }
+    .metric.below .metric-status { border-color:var(--yellow-border); color:var(--yellow); }
+    .metric.markedly-low .metric-status { border-color:var(--red-border); color:var(--red); }
+    .metric.elevated .metric-status { border-color:var(--blue-border); color:var(--blue); }
+    .metric-explain { margin-top:auto; padding-top:9px; color:var(--sub); font-size:.7rem; line-height:1.42; }
+    .legend { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-top:10px; }
+    .legend-item { padding:7px 5px; border:1px solid var(--border); border-radius:8px; text-align:center; color:var(--sub); font-size:.61rem; font-weight:800; }
+    .legend-item.green { color:var(--green); border-color:var(--green-border); }
+    .legend-item.yellow { color:var(--yellow); border-color:var(--yellow-border); }
+    .legend-item.red { color:var(--red); border-color:var(--red-border); }
+    .legend-item.blue { color:var(--blue); border-color:var(--blue-border); }
+    .context-list { display:grid; gap:7px; margin-top:11px; list-style:none; }
+    .context-list li { position:relative; padding-left:20px; color:var(--sub); font-size:.75rem; line-height:1.45; }
+    .context-list li::before { content:"•"; position:absolute; left:5px; color:var(--accent); font-weight:900; }
+    .safety { background:rgba(240,184,93,.075); border-color:var(--yellow-border); }
+    .safety h2 { color:var(--yellow); }
+    .safety p { margin-top:7px; color:#f0ddbd; font-size:.76rem; line-height:1.5; }
+    .sources { color:var(--muted); font-size:.67rem; line-height:1.55; }
+    .sources a { color:#9dbdff; text-decoration:none; }
+    .actions { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:14px; }
+    .clear-btn { padding:10px 14px; border:1px solid var(--border); border-radius:9px; background:transparent; color:var(--sub); font-weight:800; cursor:pointer; }
+    .privacy { color:var(--muted); font-size:.66rem; }
+    @media (max-width:480px) { .fields.three { grid-template-columns:1fr; } .results { grid-template-columns:1fr; } .metric { min-height:150px; } }
+    @media (max-width:370px) { .fields { grid-template-columns:1fr; } .legend { grid-template-columns:1fr 1fr; } }
+  </style>
+</head>
+<body>
+  <svg class="ecg-bg" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>
+  <main class="page">
+    <a class="back-btn" href="index.html">← Inicio</a>
+    <header>
+      <h1>CaO₂ y transporte de oxígeno</h1>
+      <p class="lead">Contenido arterial, gasto cardíaco, índice cardíaco y entrega sistémica de O₂ con unidades explícitas.</p>
+    </header>
+
+    <div class="scope"><strong>Lectura fisiológica contextual.</strong> Describe contenido y transporte sistémico calculado; no confirma por sí sola perfusión tisular, extracción adecuada ni utilización celular.</div>
+
+    <section class="card" aria-labelledby="content-title">
+      <h2 id="content-title">1 · Contenido arterial de oxígeno</h2>
+      <p class="card-intro">Usá el CaO₂ informado por el gasómetro o calculalo cuando el laboratorio no lo reporte. Para el cálculo manual usá SaO₂ arterial, no reemplaces automáticamente ese dato por SpO₂. Los decimales aceptan coma o punto.</p>
+      <div class="field">
+        <label for="caSource">Fuente del CaO₂</label>
+        <select id="caSource">
+          <option value="reported">Informado en gases arteriales</option>
+          <option value="calculated">Calcular desde Hb, SaO₂ y PaO₂</option>
+        </select>
+      </div>
+
+      <div class="source-panel" id="reportedPanel">
+        <div class="field">
+          <label for="reportedCaO2">CaO₂ informado</label>
+          <div class="input-wrap"><input id="reportedCaO2" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]+)?" autocomplete="off" spellcheck="false"><span class="unit">mL O₂/dL</span></div>
+        </div>
+      </div>
+
+      <div class="source-panel" id="calculatedPanel" hidden>
+        <div class="fields three">
+          <div class="field"><label for="hemoglobin">Hemoglobina</label><div class="input-wrap"><input id="hemoglobin" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]+)?" autocomplete="off" spellcheck="false"><span class="unit">g/dL</span></div></div>
+          <div class="field"><label for="saturation">SaO₂ arterial</label><div class="input-wrap"><input id="saturation" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]+)?" autocomplete="off" spellcheck="false"><span class="unit">%</span></div></div>
+          <div class="field"><label for="paO2">PaO₂</label><div class="input-wrap"><input id="paO2" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]+)?" autocomplete="off" spellcheck="false"><span class="unit">mmHg</span></div></div>
+        </div>
+        <div class="components" id="components">
+          <div class="component"><small>Unido a Hb</small><strong id="boundOxygen">—</strong><span>mL O₂/dL</span></div>
+          <div class="component"><small>Disuelto</small><strong id="dissolvedOxygen">—</strong><span>mL O₂/dL</span></div>
+        </div>
+      </div>
+      <div class="error" id="caError" role="alert"></div>
+      <div class="formula">CaO₂ = (1,34 × Hb × SaO₂/100) + (0,0031 × PaO₂)</div>
+    </section>
+
+    <section class="card" aria-labelledby="flow-title">
+      <h2 id="flow-title">2 · Flujo y superficie corporal</h2>
+      <p class="card-intro">Ingresá el gasto cardíaco obtenido por ecografía. La superficie corporal se estima con peso real y talla mediante Mosteller.</p>
+      <div class="fields three">
+        <div class="field"><label for="cardiacOutput">Gasto cardíaco</label><div class="input-wrap"><input id="cardiacOutput" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]+)?" autocomplete="off" spellcheck="false"><span class="unit">L/min</span></div></div>
+        <div class="field"><label for="weight">Peso real</label><div class="input-wrap"><input id="weight" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]+)?" autocomplete="off" spellcheck="false"><span class="unit">kg</span></div></div>
+        <div class="field"><label for="height">Talla</label><div class="input-wrap"><input id="height" type="text" inputmode="decimal" pattern="[0-9]+([.,][0-9]+)?" autocomplete="off" spellcheck="false"><span class="unit">cm</span></div></div>
+      </div>
+      <div class="error" id="flowError" role="alert"></div>
+      <div class="formula">SC = √[(peso kg × talla cm) / 3600] · IC = GC / SC<br>DO₂ = CaO₂ × GC × 10 · DO₂I = CaO₂ × IC × 10</div>
+    </section>
+
+    <div class="results-title"><h2>Lectura de resultados</h2><span class="legend-inline">Referencias adultas orientativas</span></div>
+    <section class="results" aria-live="polite">
+      <article class="metric" id="caMetric">
+        <div class="metric-label">CaO₂ · contenido arterial</div>
+        <div class="metric-value-row"><span class="metric-value" id="caValue">—</span><span class="metric-unit">mL O₂/dL</span></div>
+        <span class="metric-status" id="caStatus">Pendiente</span>
+        <p class="metric-explain" id="caExplain">Cantidad de oxígeno transportada por cada decilitro de sangre arterial.</p>
+      </article>
+
+      <article class="metric" id="ciMetric">
+        <div class="metric-label">Índice cardíaco</div>
+        <div class="metric-value-row"><span class="metric-value" id="ciValue">—</span><span class="metric-unit">L/min/m²</span></div>
+        <span class="metric-status" id="ciStatus">Pendiente</span>
+        <p class="metric-explain" id="ciExplain">Gasto cardíaco ajustado por la superficie corporal.</p>
+      </article>
+
+      <article class="metric" id="do2Metric">
+        <div class="metric-label">DO₂ · entrega absoluta</div>
+        <div class="metric-value-row"><span class="metric-value" id="do2Value">—</span><span class="metric-unit">mL O₂/min</span></div>
+        <span class="metric-status" id="do2Status">Pendiente</span>
+        <p class="metric-explain" id="do2Explain">Oxígeno transportado por la circulación sistémica por minuto. Interpretar junto al valor indexado.</p>
+      </article>
+
+      <article class="metric" id="do2iMetric">
+        <div class="metric-label">DO₂I · entrega indexada</div>
+        <div class="metric-value-row"><span class="metric-value" id="do2iValue">—</span><span class="metric-unit">mL O₂/min/m²</span></div>
+        <span class="metric-status" id="do2iStatus">Pendiente</span>
+        <p class="metric-explain" id="do2iExplain">Entrega sistémica de oxígeno ajustada por superficie corporal.</p>
+      </article>
+    </section>
+
+    <div class="legend" aria-label="Leyenda cromática">
+      <div class="legend-item green">Referencia</div>
+      <div class="legend-item yellow">Por debajo</div>
+      <div class="legend-item red">Marcadamente reducido</div>
+      <div class="legend-item blue">Elevado</div>
+    </div>
+
+    <section class="card" aria-labelledby="context-title">
+      <h2 id="context-title">Cómo integrarlo</h2>
+      <ul class="context-list">
+        <li>Perfusión, relleno capilar, lactato y diuresis, siempre con tendencia temporal.</li>
+        <li>ScvO₂/SvO₂ y extracción cuando estén disponibles.</li>
+        <li>Fenotipo ecográfico, VTI/GC, función ventricular, congestión y soporte vasoactivo.</li>
+        <li>Hb, SaO₂/PaO₂ y fuente de cada medición; el error del GC ecográfico se transmite a IC y DO₂.</li>
+        <li>En obesidad, conservar GC y DO₂ absolutos: la indexación por superficie corporal puede modificar la lectura.</li>
+      </ul>
+    </section>
+
+    <section class="card safety" aria-labelledby="safety-title">
+      <h2 id="safety-title">Límite clínico de los colores</h2>
+      <p>Verde significa “dentro de una referencia fisiológica habitual”, no perfusión tisular asegurada. Rojo indica un valor marcadamente reducido, pero no diagnostica shock ni prescribe transfusión, oxígeno, fluidos, inotrópicos o soporte mecánico.</p>
+      <p>El corte IC &lt;2,2 L/min/m² pertenece a definiciones de shock cardiogénico solo cuando existe el fenotipo clínico correspondiente. Para DO₂I, 300 mL/min/m² es una referencia fisiológica usada especialmente en ECMO; no es un umbral terapéutico universal de UTI.</p>
+    </section>
+
+    <section class="card sources" aria-label="Fuentes">
+      Fórmulas y fisiología: <a href="https://iris.who.int/bitstream/handle/10665/350246/9789240033733-eng.pdf" target="_blank" rel="noopener">OMS</a>. Superficie corporal: <a href="https://pubmed.ncbi.nlm.nih.gov/3657876/" target="_blank" rel="noopener">Mosteller 1987</a>. Referencia de IC: <a href="https://www.merckmanuals.com/professional/critical-care-medicine/approach-to-the-critically-ill-patient/monitoring-and-testing-the-critical-care-patient" target="_blank" rel="noopener">Merck Manual</a>; contextualización de IC ≤2,2: <a href="https://www.ahajournals.org/doi/10.1161/CIR.0000000000001063" target="_blank" rel="noopener">AHA/ACC/HFSA 2022</a>. Referencia fisiológica de DO₂I: <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8315725/" target="_blank" rel="noopener">ELSO</a>. Indexación y obesidad: <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC7033836/" target="_blank" rel="noopener">J Am Heart Assoc 2020</a>.
+    </section>
+
+    <div class="actions">
+      <button class="clear-btn" id="clearButton" type="button">Limpiar</button>
+      <span class="privacy">Los datos no se guardan.</span>
+    </div>
+  </main>
+
+  <script src="oxigeno-calculos.js?v=1.1"></script>
+  <script>
+    const api = window.OxygenTransportCalculations;
+    const inputIds = ['reportedCaO2','hemoglobin','saturation','paO2','cardiacOutput','weight','height'];
+    const fields = Object.fromEntries(inputIds.map(id => [id, document.getElementById(id)]));
+    const source = document.getElementById('caSource');
+    const statusClasses = ['reference','below','markedly-low','elevated'];
+
+    function parseInput(element) {
+      return api.parseLocalizedDecimal(element.value);
+    }
+
+    function hasValue(element) { return element.value.trim() !== ''; }
+    function format(value, decimals) { return Number.isFinite(value) ? value.toFixed(decimals) : '—'; }
+
+    function resetFieldState() {
+      inputIds.forEach(id => fields[id].classList.remove('invalid'));
+      document.getElementById('caError').textContent = '';
+      document.getElementById('flowError').textContent = '';
+    }
+
+    function setMetric(prefix, value, decimals, classification, explanation, pendingLabel='Pendiente') {
+      const metric = document.getElementById(`${prefix}Metric`);
+      const valueElement = document.getElementById(`${prefix}Value`);
+      const statusElement = document.getElementById(`${prefix}Status`);
+      const explanationElement = document.getElementById(`${prefix}Explain`);
+      statusClasses.forEach(className => metric.classList.remove(className));
+      metric.classList.toggle('has-value', Number.isFinite(value));
+      valueElement.textContent = format(value, decimals);
+      statusElement.textContent = classification ? classification.label : pendingLabel;
+      if (classification) metric.classList.add(classification.key);
+      explanationElement.textContent = explanation;
+    }
+
+    function getCaO2() {
+      const components = document.getElementById('components');
+      components.classList.remove('visible');
+      document.getElementById('boundOxygen').textContent = '—';
+      document.getElementById('dissolvedOxygen').textContent = '—';
+
+      if (source.value === 'reported') {
+        const value = parseInput(fields.reportedCaO2);
+        if (!hasValue(fields.reportedCaO2)) return null;
+        const valid = api.validateReportedCaO2(value);
+        fields.reportedCaO2.classList.toggle('invalid', valid === null);
+        if (valid === null) document.getElementById('caError').textContent = 'CaO₂ informado válido: 0–60 mL O₂/dL.';
+        return valid;
+      }
+
+      const values = [fields.hemoglobin, fields.saturation, fields.paO2];
+      const completed = values.filter(hasValue).length;
+      if (completed === 0) return null;
+      if (completed < values.length) {
+        document.getElementById('caError').textContent = 'Completá Hb, SaO₂ y PaO₂ para calcular CaO₂.';
+        return null;
+      }
+      const hb = parseInput(fields.hemoglobin);
+      const saturation = parseInput(fields.saturation);
+      const paO2 = parseInput(fields.paO2);
+      const result = api.calculateCaO2(hb, saturation, paO2);
+      fields.hemoglobin.classList.toggle('invalid', result === null && (hb === null || hb < api.LIMITS.hemoglobinGDl.min || hb > api.LIMITS.hemoglobinGDl.max));
+      fields.saturation.classList.toggle('invalid', result === null && (saturation === null || saturation < 0 || saturation > 100));
+      fields.paO2.classList.toggle('invalid', result === null && (paO2 === null || paO2 < 0 || paO2 > 2000));
+      if (!result) {
+        document.getElementById('caError').textContent = 'Revisá: Hb 0–30 g/dL, SaO₂ 0–100% y PaO₂ 0–2000 mmHg.';
+        return null;
+      }
+      document.getElementById('boundOxygen').textContent = format(result.boundOxygenMlDl, 2);
+      document.getElementById('dissolvedOxygen').textContent = format(result.dissolvedOxygenMlDl, 2);
+      components.classList.add('visible');
+      return result.totalMlDl;
+    }
+
+    function getFlow() {
+      const cardiacOutput = parseInput(fields.cardiacOutput);
+      const hasCardiacOutput = hasValue(fields.cardiacOutput);
+      if (hasCardiacOutput && (cardiacOutput === null || cardiacOutput < 0.1 || cardiacOutput > 30)) {
+        fields.cardiacOutput.classList.add('invalid');
+        document.getElementById('flowError').textContent = 'Gasto cardíaco válido: 0,1–30 L/min.';
+        return { cardiacOutput:null, bsa:null, cardiacIndex:null };
+      }
+
+      const hasWeight = hasValue(fields.weight);
+      const hasHeight = hasValue(fields.height);
+      if (hasWeight !== hasHeight) {
+        document.getElementById('flowError').textContent = 'Completá peso real y talla para calcular superficie corporal e índice cardíaco.';
+        return { cardiacOutput:hasCardiacOutput ? cardiacOutput : null, bsa:null, cardiacIndex:null };
+      }
+      if (!hasWeight && !hasHeight) return { cardiacOutput:hasCardiacOutput ? cardiacOutput : null, bsa:null, cardiacIndex:null };
+
+      const weight = parseInput(fields.weight);
+      const height = parseInput(fields.height);
+      const bsa = api.calculateBodySurfaceAreaMosteller(weight, height);
+      fields.weight.classList.toggle('invalid', bsa === null && (weight === null || weight < 1 || weight > 500));
+      fields.height.classList.toggle('invalid', bsa === null && (height === null || height < 50 || height > 250));
+      if (bsa === null) {
+        document.getElementById('flowError').textContent = 'Revisá: peso real 1–500 kg y talla 50–250 cm.';
+        return { cardiacOutput:hasCardiacOutput ? cardiacOutput : null, bsa:null, cardiacIndex:null };
+      }
+      return {
+        cardiacOutput:hasCardiacOutput ? cardiacOutput : null,
+        bsa,
+        cardiacIndex:hasCardiacOutput ? api.calculateCardiacIndex(cardiacOutput, bsa) : null,
+      };
+    }
+
+    function update() {
+      resetFieldState();
+      const caO2 = getCaO2();
+      const flow = getFlow();
+      const caClass = caO2 === null ? null : api.classifyCaO2(caO2);
+      const ciClass = flow.cardiacIndex === null ? null : api.classifyCardiacIndex(flow.cardiacIndex);
+      const do2 = caO2 === null || flow.cardiacOutput === null ? null : api.calculateOxygenDelivery(caO2, flow.cardiacOutput);
+      const do2i = caO2 === null || flow.cardiacIndex === null ? null : api.calculateIndexedOxygenDelivery(caO2, flow.cardiacIndex);
+      const do2iClass = do2i === null ? null : api.classifyIndexedOxygenDelivery(do2i);
+
+      const caExplanations = {
+        below:'La sangre arterial transporta menos O₂ por dL; revisar especialmente Hb, SaO₂ y fuente de medición.',
+        reference:'Dentro de la referencia adulta habitual; no asegura por sí solo perfusión tisular adecuada.',
+        elevated:'Contenido por encima de referencia; más O₂ arterial no garantiza distribución ni utilización adecuadas.',
+      };
+      const ciExplanations = {
+        'markedly-low':'IC <2,2: flujo indexado marcadamente reducido. Solo integra shock cardiogénico con el fenotipo clínico correspondiente.',
+        below:'Flujo cardíaco ajustado por superficie corporal por debajo de referencia.',
+        reference:'Flujo indexado dentro de una referencia hemodinámica habitual.',
+        elevated:'Patrón de flujo elevado o hiperdinámico; no equivale automáticamente a perfusión suficiente.',
+      };
+      const do2iExplanations = {
+        'markedly-low':'Transporte indexado marcadamente reducido frente a la fisiología de reposo; no es un gatillo terapéutico universal.',
+        below:'Entrega sistémica indexada por debajo de la referencia fisiológica habitual.',
+        reference:'Entrega indexada dentro de la referencia fisiológica habitual de reposo.',
+        elevated:'Entrega indexada elevada; valorar demanda, distribución, extracción y contexto hiperdinámico.',
+      };
+
+      setMetric('ca', caO2, 1, caClass, caClass ? caExplanations[caClass.key] : 'Cantidad de oxígeno transportada por cada decilitro de sangre arterial.');
+      const ciBase = flow.bsa === null
+        ? 'Gasto cardíaco ajustado por la superficie corporal.'
+        : `SC Mosteller: ${format(flow.bsa,2)} m². ` + (ciClass ? ciExplanations[ciClass.key] : 'Ingresá gasto cardíaco para calcular el IC.');
+      setMetric('ci', flow.cardiacIndex, 2, ciClass, ciBase);
+      setMetric('do2', do2, 0, null, do2 === null ? 'Requiere CaO₂ y gasto cardíaco.' : 'Transporte sistémico absoluto por minuto; la referencia se contextualiza mejor con DO₂I.', do2 === null ? 'Pendiente' : 'Valor absoluto');
+      setMetric('do2i', do2i, 0, do2iClass, do2iClass ? do2iExplanations[do2iClass.key] : 'Requiere CaO₂, gasto cardíaco, peso real y talla.');
+    }
+
+    source.addEventListener('change', () => {
+      document.getElementById('reportedPanel').hidden = source.value !== 'reported';
+      document.getElementById('calculatedPanel').hidden = source.value !== 'calculated';
+      update();
+    });
+    inputIds.forEach(id => fields[id].addEventListener('input', update));
+    document.getElementById('clearButton').addEventListener('click', () => {
+      inputIds.forEach(id => { fields[id].value = ''; fields[id].classList.remove('invalid'); });
+      source.value = 'reported';
+      document.getElementById('reportedPanel').hidden = false;
+      document.getElementById('calculatedPanel').hidden = true;
+      update();
+      fields.reportedCaO2.focus();
+    });
+    update();
+
+    (function drawEcg(){
+      const svg=document.querySelector('.ecg-bg'),W=window.innerWidth,H=window.innerHeight;
+      svg.setAttribute('viewBox',`0 0 ${W} ${H}`);const BW=240,n=Math.ceil(W/BW)+2;
+      function line(y,s,o,w){let d=`M${-BW},${y}`;for(let i=0;i<n;i++){const x=i*BW-BW;d+=` H${x+28} L${x+31},${y-3} L${x+36},${y-4} L${x+40},${y} H${x+56} L${x+59},${y+4} L${x+63},${y-38} L${x+68},${y+12} L${x+72},${y} H${x+78} L${x+83},${y-2} L${x+96},${y-9} L${x+110},${y} H${x+BW}`;}return `<path d="${d}" stroke="${s}" stroke-width="${w}" fill="none" opacity="${o}"/>`;}
+      svg.innerHTML=[line(H*.2,'#e05555',.18,1.2),line(H*.55,'#378ADD',.11,1.2),line(H*.84,'#55d6ad',.09,1.1)].join('');
+    })();
+  </script>
+</body>
+</html>
