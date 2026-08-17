@@ -49,3 +49,21 @@ Las tarjetas cromáticas expresan referencias fisiológicas adultas orientativas
 ```powershell
 node .\tests\oxigeno-calculos.test.js
 ```
+
+## Opioides en infusión continua
+
+`opioides.html` calcula concentración, dosis absoluta, dosis normalizada por peso real y cantidad acumulada administrada para morfina, fentanilo y remifentanilo. Dexmedetomidina se presenta por separado como coadyuvante no opioide. La lógica pura está en `opioides-calculos.js`.
+
+Las presentaciones quedan fijas para disminuir carga y errores de unidad: morfina 10 mg/1 mL, fentanilo 500 µg/ampolla, remifentanilo 5 mg/ampolla y dexmedetomidina 200 µg/ampolla. El usuario carga cantidad de ampollas, volumen total preparado y velocidad de bomba.
+
+La dosis se compara con rangos de infusión publicados sin convertirlos en categorías de toxicidad ni indicaciones de titulación. La persistencia se contextualiza por droga, duración y función orgánica; la cantidad acumulada no se presenta como concentración plasmática.
+
+Si se consignan creatinina (`mg/dL`), edad y sexo, la pantalla estima TFGe con CKD-EPI 2021 sin coeficiente de raza. Se advierte que esta estimación supone creatinina relativamente estable y puede ser engañosa durante una injuria renal aguda en evolución.
+
+La situación renal distingue función estable, IRA sin reemplazo, IRA con hemodiálisis intermitente, IRA con CKRT, IRA con modalidad prolongada/SLED y hemodiálisis crónica. CKD-EPI se anula en IRA o reemplazo renal; la IRA con diálisis se presenta como potencialmente reversible y no como enfermedad renal terminal.
+
+El módulo de destete sólo aparece a pedido. Un descenso inicial del 10% se muestra como escalón orientativo de reevaluación, no como pauta terapéutica validada. Actualmente no existe una escala ni un protocolo universal de abstinencia iatrogénica para adultos críticos.
+
+```powershell
+node .\tests\opioides-calculos.test.js
+```
