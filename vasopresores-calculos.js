@@ -26,6 +26,18 @@
     return targetBmi * heightM * heightM;
   }
 
+  // Peso predicho de Devine, dependiente del sexo. No reemplaza a
+  // calculateReferenceWeight: aquel es el denominador transparente de Peterson
+  // para noradrenalina, este es el peso con el que MIRA dosifica midazolam y
+  // UTI Ronda indexa el volumen corriente y el débito urinario. Se muestran los
+  // dos, con nombres distintos, porque responden preguntas distintas.
+  function calculatePredictedBodyWeight(heightCm, sex) {
+    if (!isFiniteInRange(heightCm, LIMITS.heightCm)) return null;
+    if (sex !== 'female' && sex !== 'male') return null;
+    const predicted = (sex === 'female' ? 45.5 : 50) + 0.91 * (heightCm - 152.4);
+    return predicted >= LIMITS.weightKg.min ? predicted : null;
+  }
+
   function calculateInfusionDose(ampoules, mgPerAmpoule, volumeMl, rateMlH) {
     const validPreparation = [ampoules, mgPerAmpoule, volumeMl].every(Number.isFinite)
       && ampoules > 0 && mgPerAmpoule > 0 && volumeMl > 0;
@@ -37,6 +49,33 @@
       : null;
 
     return { concentrationMcgMl, absoluteMcgMin };
+  }
+
+  // Camino inverso de calculateInfusionDose: se indica la dosis que se quiere y
+  // devuelve la velocidad de bomba que la produce con esa dilución. La unidad de
+  // la dosis viaja explícita en perKg y perMinute en vez de asumirse, porque no
+  // todas las drogas se dosifican igual: noradrenalina en mcg/kg/min y
+  // dexmedetomidina en mcg/kg/h, por ejemplo.
+  const MAX_PUMP_RATE_ML_H = 1000;
+
+  function calculateRateFromDose(input) {
+    const doseValue = input && input.doseValue;
+    const concentrationMcgMl = input && input.concentrationMcgMl;
+    const perKg = Boolean(input && input.perKg);
+    const perMinute = Boolean(input && input.perMinute);
+    const weightKg = input && input.weightKg;
+
+    if (!Number.isFinite(doseValue) || doseValue < 0) return null;
+    if (!Number.isFinite(concentrationMcgMl) || concentrationMcgMl <= 0) return null;
+    if (perKg && !isFiniteInRange(weightKg, LIMITS.weightKg)) return null;
+
+    const mcgPerHour = doseValue * (perMinute ? 60 : 1) * (perKg ? weightKg : 1);
+    const rateMlH = mcgPerHour / concentrationMcgMl;
+    return Object.freeze({
+      rateMlH,
+      mcgPerHour,
+      beyondPumpRange: rateMlH > MAX_PUMP_RATE_ML_H,
+    });
   }
 
   function normalizeDose(absoluteMcgMin, weightKg) {
@@ -62,5 +101,5 @@
     return Object.freeze({ doseMcgKgMin, points: 4, stratum: '>0.4 µg/kg/min' });
   }
 
-  return Object.freeze({ LIMITS, calculateBmi, calculateReferenceWeight, calculateInfusionDose, normalizeDose, getNorepinephrineAbsoluteScale, getSofa2CardiovascularFromNorepinephrine });
+  return Object.freeze({ LIMITS, MAX_PUMP_RATE_ML_H, calculateBmi, calculateReferenceWeight, calculatePredictedBodyWeight, calculateInfusionDose, calculateRateFromDose, normalizeDose, getNorepinephrineAbsoluteScale, getSofa2CardiovascularFromNorepinephrine });
 });

@@ -198,13 +198,23 @@
           <label for="talla">Talla</label>
           <div class="input-with-unit"><input class="peso-input" type="number" id="talla" placeholder="ej. 170" inputmode="decimal" min="100" max="250" step="0.1" oninput="recalcAll()"><span class="peso-unit">cm</span></div>
         </div>
+        <div class="anthro-field">
+          <label for="sexo">Sexo</label>
+          <select class="peso-input" id="sexo" onchange="recalcAll()">
+            <option value="">Sin cargar</option>
+            <option value="female">Femenino</option>
+            <option value="male">Masculino</option>
+          </select>
+        </div>
       </div>
       <div class="anthro-results">
         <div class="anthro-result"><div class="res-lbl">IMC</div><span class="res-val" id="imc">—</span><div class="res-unit">kg/m²</div></div>
         <div class="anthro-result"><div class="res-lbl">Peso ideal estimado*</div><span class="res-val" id="peso-ideal">—</span><div class="res-unit">kg</div></div>
+        <div class="anthro-result"><div class="res-lbl">Peso predicho**</div><span class="res-val" id="peso-predicho">—</span><div class="res-unit">kg</div></div>
       </div>
       <div class="validation-msg" id="anthro-validation" role="status"></div>
       <div class="anthro-help">*Referencia antropométrica transparente: IMC 22,5 × talla² (Peterson et al., 2016). No fue validada por Wendel-García et al. como denominador para noradrenalina.</div>
+      <div class="anthro-help">**Peso predicho de Devine, requiere sexo. Es otro número y sirve para otra cosa: es el que usan MIRA para dosificar midazolam y UTI Ronda para indexar volumen corriente y débito urinario. No es un denominador para vasopresores.</div>
     </div>
 
     <!-- NE -->
@@ -221,7 +231,9 @@
           <div class="inp-group"><label>Vol final (mL)</label><input type="number" id="ne-vol" placeholder="ej. 100" inputmode="decimal" min="0" oninput="calc('ne')"></div>
         </div>
         <div class="inp-group full"><label>Velocidad bomba (mL/h)</label><input type="number" id="ne-vel" placeholder="ej. 8" inputmode="decimal" min="0" oninput="calc('ne')"></div>
+        <div class="inp-group full"><label>Dosis objetivo (µg/kg/min)</label><input type="number" id="ne-dosis" placeholder="ej. 0,1" inputmode="decimal" min="0" step="any" oninput="calc('ne')"></div>
         <div class="results-grid ne-results">
+          <div class="res-item highlight"><div class="res-lbl">Velocidad para la dosis objetivo</div><span class="res-val" id="ne-vel-obj">—</span><div class="res-unit">mL/h</div></div>
           <div class="res-item primary"><div class="res-lbl">Dosis absoluta de bomba</div><span class="res-val" id="ne-abs">—</span><div class="res-unit">µg/min</div></div>
           <section class="ne-orientation" aria-labelledby="ne-orientation-title">
             <div class="ne-orientation-head">
@@ -277,7 +289,9 @@
           <div class="inp-group"><label>Vol final (mL)</label><input type="number" id="dobu-vol" placeholder="ej. 250" inputmode="decimal" min="0" oninput="calc('dobu')"></div>
         </div>
         <div class="inp-group full"><label>Velocidad bomba (mL/h)</label><input type="number" id="dobu-vel" placeholder="ej. 12" inputmode="decimal" min="0" oninput="calc('dobu')"></div>
+        <div class="inp-group full"><label>Dosis objetivo (µg/kg/min)</label><input type="number" id="dobu-dosis" placeholder="ej. 5" inputmode="decimal" min="0" step="any" oninput="calc('dobu')"></div>
         <div class="results-grid">
+          <div class="res-item highlight"><div class="res-lbl">Vel. para dosis objetivo</div><span class="res-val" id="dobu-vel-obj">—</span><div class="res-unit">mL/h</div></div>
           <div class="res-item"><div class="res-lbl">Concentración</div><span class="res-val" id="dobu-conc">—</span><div class="res-unit">mcg/mL</div></div>
           <div class="res-item"><div class="res-lbl">Dosis abs.</div><span class="res-val" id="dobu-abs">—</span><div class="res-unit">mcg/min</div></div>
           <div class="res-item highlight"><div class="res-lbl">GAMAS</div><span class="res-val" id="dobu-gamas">—</span><div class="res-unit">mcg/kg/min</div></div>
@@ -376,7 +390,7 @@
 
     let vasoDose = null;
 
-    const { LIMITS, calculateBmi, calculateReferenceWeight, calculateInfusionDose, normalizeDose, getNorepinephrineAbsoluteScale, getSofa2CardiovascularFromNorepinephrine } = window.VasopressorCalculations;
+    const { LIMITS, calculateBmi, calculateReferenceWeight, calculatePredictedBodyWeight, calculateInfusionDose, calculateRateFromDose, normalizeDose, getNorepinephrineAbsoluteScale, getSofa2CardiovascularFromNorepinephrine } = window.VasopressorCalculations;
 
     function parseNumber(id){
       const value=parseFloat(document.getElementById(id).value);
@@ -391,11 +405,13 @@
       const talla=getTalla();
       const bmi=calculateBmi(peso,talla);
       const ideal=calculateReferenceWeight(talla);
+      const predicted=calculatePredictedBodyWeight(talla,document.getElementById('sexo').value);
       const validation=document.getElementById('anthro-validation');
       const idealRadio=document.getElementById('ne-denom-ideal');
 
       setVal('imc',bmi===null?null:bmi.toFixed(1));
       setVal('peso-ideal',ideal===null?null:ideal.toFixed(1));
+      setVal('peso-predicho',predicted===null?null:predicted.toFixed(1));
       idealRadio.disabled=ideal===null;
       if(ideal===null && idealRadio.checked){
         document.querySelector('input[name="ne-denominator"][value="real"]').checked=true;
@@ -413,6 +429,7 @@
 
     function setVal(id,val,colorClass){
       const el=document.getElementById(id);
+      if(!el) return;
       const s = val===null||isNaN(val)?'—':val;
       el.textContent=s;
       el.className='res-val';
@@ -429,7 +446,7 @@
       const d=DRUGS[drug];
 
       if(!amp||!vol||amp<=0||vol<=0){
-        setVal(`${drug}-conc`,null); setVal(`${drug}-abs`,null); setVal(`${drug}-gamas`,null);
+        setVal(`${drug}-conc`,null); setVal(`${drug}-abs`,null); setVal(`${drug}-gamas`,null); setVal(`${drug}-vel-obj`,null);
         if(drug==='ne'){ setVal('ne-gamas-ideal',null); updateNEContext(null,anthro.bmi,null); updateNEAbsoluteReading(null,anthro.bmi); updateSofa2Assistant(null,peso,anthro.bmi); }
         if(drug==='dobu'||drug==='adre') updateAlert(drug,null);
         return;
@@ -438,6 +455,10 @@
       const infusion=calculateInfusionDose(amp,d.mgPerAmp,vol,vel);
       const conc=infusion.concentrationMcgMl;
       setVal(`${drug}-conc`,conc<1?conc.toFixed(3):conc.toFixed(1));
+
+      // El camino inverso no depende de la velocidad de bomba: con la dilución y
+      // el peso alcanza. Por eso va antes de la salida temprana de abajo.
+      updateTargetRate(drug,conc,peso);
 
       if(!vel||vel<=0){
         setVal(`${drug}-abs`,null); setVal(`${drug}-gamas`,null);
@@ -472,6 +493,28 @@
         if(drug==='dobu') updateAlert('dobu',null);
         if(drug==='adre') updateAlert('adre',null);
       }
+    }
+
+    // Camino inverso: se carga la dosis que se quiere y sale la velocidad de
+    // bomba que la produce con esa dilución. Todas las drogas de esta pantalla
+    // se dosifican en µg/kg/min, así que la unidad es la misma para las cuatro.
+    // El denominador es el peso real, igual que la gamma que se muestra arriba.
+    function updateTargetRate(drug,conc,peso){
+      const input=document.getElementById(`${drug}-dosis`);
+      if(!input) return;
+      const dose=parseFloat(input.value);
+      if(!Number.isFinite(dose)||dose<0||conc===null||!Number.isFinite(conc)){
+        setVal(`${drug}-vel-obj`,null); return;
+      }
+      const result=calculateRateFromDose({
+        doseValue:dose, concentrationMcgMl:conc, weightKg:peso, perKg:true, perMinute:true,
+      });
+      if(result===null){
+        const el=document.getElementById(`${drug}-vel-obj`);
+        el.textContent='Peso?'; el.className='res-val';
+        return;
+      }
+      setVal(`${drug}-vel-obj`,result.rateMlH.toFixed(1),result.beyondPumpRange?'danger':null);
     }
 
     function updateNEContext(realDose,bmi,idealDose){
