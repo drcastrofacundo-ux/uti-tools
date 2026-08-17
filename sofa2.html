@@ -314,16 +314,32 @@
         co.innerHTML='Completá los 6 sistemas para ver la interpretación.';
         rs.className='result-section'; return;
       }
-      tD.textContent=total;
-      const ip=INTERP.find(i=>total<=i.max);
-      tD.className=`score-bar-value ${ip.c}`;
-      rB.textContent=total; rB.className=`result-big ${ip.c}`;
-      rs.className=`result-section ${ip.c}`;
-      rT.innerHTML=`<span class="res-tag ${ip.c}">${ip.tag}</span>`;
-      mo.textContent=ip.mort;
-      const comp=vals.filter(v=>v!==null&&v>0).length;
-      sy.textContent=`${comp} / ${filled}`;
-      co.innerHTML=filled<6?`<em style="color:var(--muted)">(${filled}/6 sistemas) ${ip.conduct}</em>`:ip.conduct;
+      // Los sistemas sin cargar suman cero. Con el score incompleto el total es
+      // un piso, no el SOFA-2 del paciente, así que la mortalidad estimada y la
+      // interpretación no se muestran: un porcentaje derivado de un puntaje que
+      // no existe se lee como si fuera real.
+      const complete = filled === 6;
+      const ip = INTERP.find(i => total <= i.max);
+      const tone = complete ? ip.c : '';
+      const comp = vals.filter(v => v !== null && v > 0).length;
+
+      tD.textContent = total;
+      tD.className = `score-bar-value ${tone}`;
+      rB.textContent = total; rB.className = `result-big ${tone}`;
+      rs.className = `result-section ${tone}`;
+      sy.textContent = `${comp} / ${filled}`;
+
+      if (!complete) {
+        const faltan = 6 - filled;
+        rT.innerHTML = `<span class="res-tag">Parcial · ${filled}/6 sistemas</span>`;
+        mo.textContent = '—';
+        co.innerHTML = `<strong>Puntaje parcial: falta${faltan === 1 ? '' : 'n'} ${faltan} sistema${faltan === 1 ? '' : 's'}.</strong> Los sistemas sin cargar suman cero, así que ${total} es un piso y no el SOFA-2 del paciente. La mortalidad estimada y la interpretación aparecen con los 6 sistemas cargados.`;
+        return;
+      }
+
+      rT.innerHTML = `<span class="res-tag ${ip.c}">${ip.tag}</span>`;
+      mo.textContent = ip.mort;
+      co.innerHTML = ip.conduct;
     }
 
     function resetAll(){
