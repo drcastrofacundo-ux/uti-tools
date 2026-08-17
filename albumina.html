@@ -30,6 +30,9 @@
     input:focus { border-color:rgba(110,168,254,.7); box-shadow:0 0 0 3px rgba(110,168,254,.1); }
     input.invalid { border-color:var(--red); }
     .unit { position:absolute; right:10px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:.7rem; font-weight:700; }
+    select.unit { background:transparent; border:0; padding:2px 4px; cursor:pointer; font-family:inherit; }
+    select.unit:focus-visible { outline:2px solid var(--muted); outline-offset:2px; border-radius:3px; }
+    select.unit option { color:initial; }
     .time-field { margin-top:11px; }
     .time-field input { padding-right:10px; color-scheme:dark; font-size:.82rem; }
     .error { min-height:18px; color:var(--red); font-size:.72rem; margin-top:7px; }
@@ -90,11 +93,11 @@
 
     <section class="card" aria-labelledby="current-title">
       <h2 id="current-title">Valor actual</h2>
-      <p class="card-intro">Cociente numérico = PCR (mg/L) ÷ albúmina (g/dL). Comparar series solo si se conservaron estas unidades.</p>
+      <p class="card-intro">Cociente numérico = PCR (mg/L) ÷ albúmina (g/dL). Elegí la unidad en la que informa tu laboratorio: el cociente siempre se calcula en mg/L.</p>
       <div class="fields">
         <div class="field">
           <label for="currentPcr">PCR</label>
-          <div class="input-wrap"><input id="currentPcr" type="number" min="0" step="any" inputmode="decimal" autocomplete="off"><span class="unit">mg/L</span></div>
+          <div class="input-wrap"><input id="currentPcr" type="number" min="0" step="any" inputmode="decimal" autocomplete="off"><select id="currentPcrUnit" class="unit" aria-label="Unidad de PCR"><option value="mg/L">mg/L</option><option value="mg/dL">mg/dL</option></select></div>
         </div>
         <div class="field">
           <label for="currentAlbumin">Albúmina</label>
@@ -109,6 +112,7 @@
       <div class="result" id="currentResult" aria-live="polite">
         <div><small>Cociente actual</small><strong id="currentRatio">—</strong></div>
         <p id="currentMessage">Ingresá PCR y albúmina para calcular.</p>
+        <p id="miraHandoff" class="meaning"></p>
       </div>
       <div class="reference-scale" aria-label="Referencias observacionales publicadas">
         <h3>Contexto bibliográfico, no clasificación diagnóstica</h3>
@@ -127,7 +131,7 @@
         <div class="fields">
           <div class="field">
             <label for="previousPcr">PCR previa</label>
-            <div class="input-wrap"><input id="previousPcr" type="number" min="0" step="any" inputmode="decimal" autocomplete="off"><span class="unit">mg/L</span></div>
+            <div class="input-wrap"><input id="previousPcr" type="number" min="0" step="any" inputmode="decimal" autocomplete="off"><select id="previousPcrUnit" class="unit" aria-label="Unidad de PCR previa"><option value="mg/L">mg/L</option><option value="mg/dL">mg/dL</option></select></div>
           </div>
           <div class="field">
             <label for="previousAlbumin">Albúmina previa</label>
@@ -177,8 +181,9 @@
 
   <script src="albumina-calculos.js?v=2"></script>
   <script>
-    const ids = ['currentPcr','currentAlbumin','previousPcr','previousAlbumin','currentTime','previousTime'];
+    const ids = ['currentPcr','currentAlbumin','previousPcr','previousAlbumin','currentTime','previousTime','currentPcrUnit','previousPcrUnit'];
     const elements = Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
+    const miraHandoff = document.getElementById('miraHandoff');
     const currentRatio = document.getElementById('currentRatio');
     const currentResult = document.getElementById('currentResult');
     const currentMessage = document.getElementById('currentMessage');
@@ -209,11 +214,13 @@
     }
 
     function validateCurrent() {
-      const pcr = numberOrNull(elements.currentPcr);
+      // La PCR se lleva a mg/L apenas entra: de ahí en adelante todo el cálculo
+      // trabaja en la unidad canónica y la del laboratorio no vuelve a aparecer.
+      const pcr = AlbuminCalculations.normalizeCrp(numberOrNull(elements.currentPcr), elements.currentPcrUnit.value);
       const albumin = numberOrNull(elements.currentAlbumin);
       const hasPcr = elements.currentPcr.value.trim() !== '';
       const hasAlbumin = elements.currentAlbumin.value.trim() !== '';
-      elements.currentPcr.classList.toggle('invalid', hasPcr && !AlbuminCalculations.isValidCrp(pcr));
+      elements.currentPcr.classList.toggle('invalid', hasPcr && pcr === null);
       elements.currentAlbumin.classList.toggle('invalid', hasAlbumin && !AlbuminCalculations.isValidAlbumin(albumin));
 
       if (!hasPcr || !hasAlbumin) {
@@ -221,14 +228,16 @@
         currentRatio.textContent = '—';
         currentResult.removeAttribute('data-level');
         currentMessage.textContent = 'Ingresá PCR y albúmina para calcular.';
+        miraHandoff.textContent = '';
         return null;
       }
       const ratio = AlbuminCalculations.calculateCrpAlbuminRatio(pcr, albumin);
       if (ratio === null) {
-        currentError.textContent = 'PCR debe ser ≥ 0 mg/L y albúmina > 0 g/dL.';
+        currentError.textContent = 'PCR debe ser ≥ 0 y albúmina > 0 g/dL.';
         currentRatio.textContent = '—';
         currentResult.removeAttribute('data-level');
         currentMessage.textContent = 'Revisá los valores y las unidades.';
+        miraHandoff.textContent = '';
         return null;
       }
       currentError.textContent = '';
@@ -236,6 +245,10 @@
       const classification = AlbuminCalculations.classifyCrpAlbuminRatio(ratio);
       currentResult.dataset.level = classification.key;
       currentMessage.textContent = `${classification.label}. Referencia observacional; no diagnostica fuga ni indica tratamiento.`;
+      // MIRA escala su factor inflamatorio con PCR en mg/dL. Se muestra el valor
+      // ya convertido para que no haya que hacer la cuenta a mano al pasarlo.
+      const pcrMgDl = AlbuminCalculations.convertCrpToMgDl(pcr);
+      miraHandoff.innerHTML = `<strong>Para MIRA:</strong> PCR ${pcr.toFixed(1)} mg/L equivale a <strong>${pcrMgDl.toFixed(2)} mg/dL</strong>, que es la unidad en la que MIRA calcula el factor inflamatorio del IRAM. Cargar ahí el valor en mg/L multiplica el índice por diez.`;
       return { pcr, albumin, ratio };
     }
 
@@ -252,9 +265,11 @@
         trendError.textContent = 'Completá ambos valores previos para comparar.';
         return;
       }
-      const previousPcr = numberOrNull(elements.previousPcr);
+      // La PCR previa se normaliza con su propia unidad: la serie puede venir de
+      // dos laboratorios que informan distinto y aun así ser comparable.
+      const previousPcr = AlbuminCalculations.normalizeCrp(numberOrNull(elements.previousPcr), elements.previousPcrUnit.value);
       const previousAlbumin = numberOrNull(elements.previousAlbumin);
-      elements.previousPcr.classList.toggle('invalid', !AlbuminCalculations.isValidCrp(previousPcr));
+      elements.previousPcr.classList.toggle('invalid', previousPcr === null);
       elements.previousAlbumin.classList.toggle('invalid', !AlbuminCalculations.isValidAlbumin(previousAlbumin));
       if (!current) {
         trendError.textContent = 'Completá un valor actual válido para comparar.';
@@ -262,7 +277,7 @@
       }
       const trend = AlbuminCalculations.calculateRatioTrend(previousPcr, previousAlbumin, current.pcr, current.albumin);
       if (!trend) {
-        trendError.textContent = 'PCR previa debe ser ≥ 0 mg/L y albúmina previa > 0 g/dL.';
+        trendError.textContent = 'PCR previa debe ser ≥ 0 y albúmina previa > 0 g/dL.';
         return;
       }
       const direction = trend.direction === 'increase' ? 'ascenso' : trend.direction === 'decrease' ? 'descenso' : 'sin cambio';
@@ -277,7 +292,12 @@
 
     ids.forEach(id => elements[id].addEventListener('input', update));
     document.getElementById('clearButton').addEventListener('click', () => {
-      ids.forEach(id => { elements[id].value = ''; elements[id].classList.remove('invalid'); });
+      ids.forEach(id => {
+        // Los selectores de unidad vuelven a mg/L, no a vacío: un select sin
+        // opción válida dejaría la PCR sin unidad y sin poder calcularse.
+        elements[id].value = elements[id].tagName === 'SELECT' ? AlbuminCalculations.CANONICAL_CRP_UNIT : '';
+        elements[id].classList.remove('invalid');
+      });
       update();
       elements.currentPcr.focus();
     });
