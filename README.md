@@ -8,7 +8,7 @@ Todas las calculadoras son de acceso libre y permanecen así: sin registro, sin 
 
 Cada pantalla incluye al pie un enlace opcional "Invitame un café" (Mercado Pago) para quien quiera y pueda colaborar con el mantenimiento. Es voluntario y no condiciona el funcionamiento de ninguna herramienta.
 
-El enlace real de Mercado Pago se configura reemplazando `https://mpago.la/REEMPLAZAR-CON-TU-LINK` en `index.html` y en el pie de cada calculadora.
+El enlace de colaboración apunta a `https://cafecito.app/utitools` desde `index.html` y desde el pie de cada calculadora. Cafecito acredita en Mercado Pago y retiene una comisión por transacción. Si el usuario de Cafecito cambia, hay que actualizar ese enlace en los siete archivos.
 
 ## Uso local
 
