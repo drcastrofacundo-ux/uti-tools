@@ -2,6 +2,10 @@
 
 Aplicación clínica estática para GitHub Pages.
 
+## Apoyar el proyecto
+
+Cada pantalla tiene un enlace opcional "Invitame un café" (Mercado Pago) para quien quiera colaborar con el mantenimiento. Es gratis y sin anuncios; no depende de esa colaboración para funcionar. El enlace real de Mercado Pago se configura reemplazando `https://mpago.la/REEMPLAZAR-CON-TU-LINK` en `index.html` y en el pie de cada calculadora.
+
 ## Uso local
 
 Serví la carpeta con un servidor HTTP local y abrí `index.html` en un navegador moderno.
