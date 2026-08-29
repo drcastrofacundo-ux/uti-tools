@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://drcastrofacundo-ux.github.io/uti-tools/sitemap.xml
+Sitemap: https://uti-tools.netlify.app/sitemap.xml

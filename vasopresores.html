@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Vasopresores — UTI Tools</title>
   <meta name="description" content="Calculadora de vasopresores en terapia intensiva: noradrenalina, dobutamina, adrenalina, vasopresina y nitroglicerina, con dosis absoluta y normalizada por peso.">
-  <link rel="canonical" href="https://drcastrofacundo-ux.github.io/uti-tools/vasopresores.html">
+  <link rel="canonical" href="https://uti-tools.netlify.app/vasopresores.html">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -356,10 +356,12 @@
       <div class="drug-header">
         <div class="drug-info">
           <span class="drug-emoji">🟢</span>
-          <div><div class="drug-name">Nitroglicerina</div><div class="drug-amp">25 mg / amp</div></div>
+          <div><div class="drug-name">Nitroglicerina</div><div class="drug-amp">contenido a confirmar</div></div>
         </div>
       </div>
       <div class="drug-body">
+        <div class="alert-bar warn" id="ntg-alert">Sin contenido precargado: UTI Tools registraba 25 mg/amp y la Recorrida previa 50 mg/amp. Cargá el valor de la ampolla que tenés en la mano.</div>
+        <div class="inp-group full"><label>Contenido real (mg / ampolla)</label><input type="number" id="ntg-mg" placeholder="verificar en la ampolla" inputmode="decimal" min="0" oninput="calc('ntg')"></div>
         <div class="input-row">
           <div class="inp-group"><label>Ampollas</label><input type="number" id="ntg-amp" placeholder="ej. 2" inputmode="decimal" min="0" oninput="calc('ntg')"></div>
           <div class="inp-group"><label>Vol final (mL)</label><input type="number" id="ntg-vol" placeholder="ej. 100" inputmode="decimal" min="0" oninput="calc('ntg')"></div>
@@ -387,7 +389,7 @@
       ne:   { mgPerAmp: 4,    unit:'mcg' },
       dobu: { mgPerAmp: 250,  unit:'mcg' },
       adre: { mgPerAmp: 1,    unit:'mcg' },
-      ntg:  { mgPerAmp: 25,   unit:'mcg' },
+      ntg:  { mgPerAmp: null, unit:'mcg' },  // sin precargar: se confirma contra la ampolla
     };
 
     let vasoDose = null;
@@ -446,15 +448,16 @@
       const peso=getPeso();
       const anthro=updateAnthropometry();
       const d=DRUGS[drug];
+      const mgPorAmp = drug==='ntg' ? parseNumber('ntg-mg') : d.mgPerAmp;
 
-      if(!amp||!vol||amp<=0||vol<=0){
+      if(!mgPorAmp||mgPorAmp<=0||!amp||!vol||amp<=0||vol<=0){
         setVal(`${drug}-conc`,null); setVal(`${drug}-abs`,null); setVal(`${drug}-gamas`,null); setVal(`${drug}-vel-obj`,null);
         if(drug==='ne'){ setVal('ne-gamas-ideal',null); updateNEContext(null,anthro.bmi,null); updateNEAbsoluteReading(null,anthro.bmi); updateSofa2Assistant(null,peso,anthro.bmi); }
         if(drug==='dobu'||drug==='adre') updateAlert(drug,null);
         return;
       }
 
-      const infusion=calculateInfusionDose(amp,d.mgPerAmp,vol,vel);
+      const infusion=calculateInfusionDose(amp,mgPorAmp,vol,vel);
       const conc=infusion.concentrationMcgMl;
       setVal(`${drug}-conc`,conc<1?conc.toFixed(3):conc.toFixed(1));
 
