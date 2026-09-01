@@ -16,7 +16,7 @@ const registrador = leer('registrar-sw.js');
 const manifest = JSON.parse(leer('manifest.webmanifest'));
 
 // Archivos que se sirven al navegador pero no forman parte de la app.
-const FUERA_DE_LA_APP = new Set(['robots.txt', 'sitemap.xml']);
+const FUERA_DE_LA_APP = new Set(['robots.txt', 'sitemap.xml', '_headers']);
 
 // --- La precarga cubre todo lo que se sirve ---------------------------------
 
@@ -84,6 +84,35 @@ for (const archivo of htmls) {
   assert.match(s, /name="theme-color"/, `${archivo} no declara theme-color`);
   assert.match(s, /apple-touch-icon/, `${archivo} no declara apple-touch-icon`);
 }
+
+// --- Netlify sirve el manifest con el MIME correcto -------------------------
+// Sin esto Netlify lo manda como application/octet-stream y Firefox se niega a
+// instalar la app.
+
+// Se normalizan los espacios para comparar por contenido y no por sangria.
+const cabeceras = leer('_headers').split('\n').map((l) => l.trim());
+
+function reglaBajo(ruta, cabecera) {
+  const i = cabeceras.indexOf(ruta);
+  if (i === -1) return false;
+  // La cabecera aplica hasta la proxima ruta o linea en blanco.
+  for (let j = i + 1; j < cabeceras.length; j += 1) {
+    const linea = cabeceras[j];
+    if (linea === '' || linea.startsWith('/')) break;
+    if (linea.startsWith('#')) continue;
+    if (linea.toLowerCase().startsWith(cabecera.toLowerCase())) return true;
+  }
+  return false;
+}
+
+assert.ok(
+  reglaBajo('/manifest.webmanifest', 'Content-Type: application/manifest+json'),
+  '_headers ya no fija el Content-Type del manifest: Firefox no podria instalar la app',
+);
+assert.ok(
+  reglaBajo('/sw.js', 'Cache-Control: no-cache'),
+  '_headers ya no impide que el navegador cachee sw.js',
+);
 
 // --- La estrategia sigue siendo network-first -------------------------------
 // Si alguien la cambia a cache-first, que sea una decision consciente y que
