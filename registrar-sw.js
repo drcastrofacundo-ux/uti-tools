@@ -70,6 +70,59 @@
     ));
   }
 
+  // --- Boton de instalar en Android ----------------------------------------
+  // Sin esto hay que buscar «Instalar» en el menu de Chrome, y si uno cae en
+  // «Agregar a pantalla principal» lo que queda es un acceso directo al
+  // navegador —con el logo de Chrome encima del icono— y no la app: se abre con
+  // barra de direcciones y no funciona sin senal.
+  //
+  // El listener se registra al cargar el archivo, antes de que Chrome dispare el
+  // evento. Chrome solo lo dispara si considera el sitio instalable, asi que su
+  // presencia tambien sirve como diagnostico.
+  window.__utiInstalable = false;
+  let promptGuardado = null;
+
+  window.addEventListener('beforeinstallprompt', (evento) => {
+    // Se frena el aviso propio de Chrome para ofrecerlo en el momento elegido.
+    evento.preventDefault();
+    promptGuardado = evento;
+    window.__utiInstalable = true;
+
+    if (yaInstalada) return;
+
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.textContent = '⬇ Instalar la app';
+    boton.style.cssText = [
+      'display:inline-flex', 'align-items:center', 'gap:6px',
+      'margin:10px auto 4px', 'padding:9px 18px', 'border-radius:8px',
+      'font-size:0.78rem', 'font-weight:700', 'cursor:pointer',
+      'color:#0a0f1e', 'background:#1D9E75', 'border:0',
+      'font-family:inherit',
+    ].join(';');
+
+    boton.addEventListener('click', async () => {
+      if (!promptGuardado) return;
+      boton.disabled = true;
+      promptGuardado.prompt();
+      const { outcome } = await promptGuardado.userChoice;
+      promptGuardado = null;
+      if (outcome === 'accepted') boton.remove();
+      else boton.disabled = false;
+    });
+
+    const contenedor = document.createElement('div');
+    contenedor.style.textAlign = 'center';
+    contenedor.appendChild(boton);
+    pie().prepend(contenedor);
+  });
+
+  window.addEventListener('appinstalled', () => {
+    promptGuardado = null;
+    const b = document.querySelector('#uti-estado button');
+    if (b) b.parentElement.remove();
+  });
+
   // --- Registro -------------------------------------------------------------
   if (!('serviceWorker' in navigator)) return;
 
