@@ -8,7 +8,15 @@ Todas las calculadoras son de acceso libre y permanecen así: sin registro, sin 
 
 Cada pantalla incluye al pie un enlace opcional "Invitame un café" (Mercado Pago) para quien quiera y pueda colaborar con el mantenimiento. Es voluntario y no condiciona el funcionamiento de ninguna herramienta.
 
-El enlace de colaboración apunta a `https://cafecito.app/drcastrofacundo` desde `index.html` y desde el pie de cada calculadora. Cafecito acredita en Mercado Pago y retiene una comisión por transacción. Si el usuario de Cafecito cambia, hay que actualizar ese enlace en los siete archivos.
+El enlace de colaboración apunta a `https://cafecito.app/utitools` desde `index.html` y desde el pie de cada calculadora. Cafecito acredita en Mercado Pago y retiene una comisión por transacción.
+
+**El slug de la URL es `utitools`, no `drcastrofacundo`.** `drcastrofacundo` es el nombre visible del perfil, y no resuelve como dirección: Cafecito responde HTTP 200 y renderiza «Esta página no está disponible», así que el enlace roto no se detecta revisando códigos de estado. Si el slug cambia alguna vez, hay que actualizarlo en los siete archivos y en este README:
+
+```
+node .\tests\enlaces.test.js
+```
+
+Ese test recorre los HTML y el README y falla si algún enlace apunta a otro slug.
 
 ## Uso local
 
