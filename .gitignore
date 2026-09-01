@@ -18,3 +18,4 @@ pase_*.txt
 .DS_Store
 Thumbs.db
 *.local.*
+.claude/

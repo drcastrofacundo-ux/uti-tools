@@ -18,6 +18,50 @@ node .\tests\enlaces.test.js
 
 Ese test recorre los HTML y el README y falla si algún enlace apunta a otro slug.
 
+## Instalación en el celular (PWA)
+
+UTI Tools se instala como app desde el navegador: queda un ícono en la pantalla
+de inicio, abre a pantalla completa y **funciona sin señal**.
+
+- **Android:** el navegador ofrece «Instalar» solo.
+- **iPhone:** desde Safari, Compartir → «Agregar a inicio». Apple no permite un
+  botón de instalar, así que la app muestra esa ayuda sola cuando detecta iOS.
+
+### Estrategia de cache: network-first
+
+El service worker consulta **la red antes que el cache**, al revés de lo
+habitual. Es deliberado y está fundamentado en `docs/2026-09-01-pwa-diseno.md`:
+esto calcula dosis, y bajo cache-first una corrección publicada puede tardar en
+llegar mientras alguien sigue calculando con números viejos. Con señal siempre
+gana la versión vigente; sin señal, la última guardada.
+
+`tests/pwa.test.js` falla si alguien invierte esa estrategia, para que el
+cambio tenga que ser consciente.
+
+### Al agregar una calculadora nueva
+
+Sumala a la lista `PRECARGA` de `sw.js` y subí la constante `VERSION` en
+`sw.js` **y** en `registrar-sw.js` (las dos tienen que coincidir). Después:
+
+```
+node .\tests\pwa.test.js
+```
+
+Ese test falla si un archivo servido quedó fuera de la precarga —o sea, si no
+funcionaría sin señal—, si el manifest declara un ícono que no existe, o si las
+dos versiones se desincronizaron.
+
+### Íconos
+
+Se generan por código, no se editan a mano:
+
+```
+python iconos\generar_iconos.py
+```
+
+La geometría vive en `iconos/generar_iconos.py`, que emite el SVG y todos los
+PNG. Editar un PNG suelto lo deja desincronizado del resto.
+
 ## Uso local
 
 Serví la carpeta con un servidor HTTP local y abrí `index.html` en un navegador moderno.
